@@ -3,7 +3,7 @@ import sys
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit
 
-from settings import Ui_Dialog
+from ui.settings import Ui_Dialog
 
 
 class SettingsDialog(Ui_Dialog):
