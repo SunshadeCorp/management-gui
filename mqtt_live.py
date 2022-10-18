@@ -1,9 +1,9 @@
 import os
+import statistics
 import sys
 
-from PyQt5 import QtWidgets, Qt
 import paho.mqtt.client as mqtt
-from PyQt5.QtGui import QPalette
+from PyQt5 import QtWidgets
 
 from custom_signal_window import CustomSignalWindow
 from ui.mqtt_live import Ui_MainWindow
@@ -54,7 +54,9 @@ class MqttLiveWindow(Ui_MainWindow):
                 cell.setObjectName("label")
                 cell.setText(f'{i}:')
                 vertical_layout.addWidget(cell)
-                cells[i] = cell
+                cells[i] = {
+                    'widget': cell,
+                }
             self.gridLayout.addWidget(module, self.row, self.column)
             self.column += 1
             if self.column >= CONFIG_MAX_COLUMNS:
@@ -64,7 +66,7 @@ class MqttLiveWindow(Ui_MainWindow):
                 'widget': module,
                 'layout': vertical_layout,
                 'header': label,
-                'cells': cells
+                'cells': cells,
             }
 
     def set_widget(self, data: dict):
@@ -72,11 +74,24 @@ class MqttLiveWindow(Ui_MainWindow):
         if 'available' in data:
             if data['available'] == 'offline':
                 widget: QtWidgets.QWidget = module['widget']
-                # widget.setAutoFillBackground(True)
                 widget.setStyleSheet('background-color: grey;')
             return
-        cell: QtWidgets.QLabel = module['cells'][data['number']]
+        voltage: float = float(data['value'])
+        cell: QtWidgets.QLabel = module['cells'][data['number']]['widget']
+        module['cells'][data['number']]['voltage'] = voltage
         cell.setText(f"{data['number']}: {data['value']}")
+        voltages: list[float] = []
+        for cell_number in module['cells']:
+            if 'voltage' in module['cells'][cell_number]:
+                voltages.append(module['cells'][cell_number]['voltage'])
+        median_voltage: float = statistics.median(voltages)
+        module['header'].setText(f"{data['identifier']}: {median_voltage:.3f}")
+        for cell_number in module['cells']:
+            if 'voltage' in module['cells'][cell_number]:
+                if abs(module['cells'][cell_number]['voltage'] - median_voltage) >= 0.01:
+                    module['cells'][cell_number]['widget'].setStyleSheet('background-color: red;')
+                else:
+                    module['cells'][cell_number]['widget'].setStyleSheet('')
 
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
         topic = msg.topic[msg.topic.find('/') + 1:]
