@@ -124,5 +124,5 @@ class MqttLiveWindow(Ui_MainWindow):
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    # main_window = MainWindow()
-    # main_window.show()
+    main_window = MqttLiveWindow('host', 'username', 'password')
+    main_window.show()
