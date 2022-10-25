@@ -68,7 +68,12 @@ class MainWindow(Ui_MainWindow):
 
     def show_mqtt_live(self):
         store = self.reader_list['credentials'].store
-        w = MqttLiveWindow(self.config['host'], store['mqtt_user'], store['mqtt_password'])
+        parameters: dict = {
+            'host': self.config['host'],
+            'username': store['mqtt_user'],
+            'password': store['mqtt_password'],
+        }
+        w = MqttLiveWindow(parameters)
         w.show()
 
     def get_connection(self):

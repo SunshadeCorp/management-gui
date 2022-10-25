@@ -1,31 +1,35 @@
 import os
 import statistics
 import sys
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets
 
 from custom_signal_window import CustomSignalWindow
+from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
-
-CONFIG_MAX_COLUMNS = 4
+from utils import save_config_local, get_config_local
 
 
 class MqttLiveWindow(Ui_MainWindow):
-    def __init__(self, host: str, username: str, password: str):
+    def __init__(self, parameters: dict):
         self.app = QtWidgets.QApplication(sys.argv)
         self.main_window = CustomSignalWindow()
         self.setupUi(self.main_window)
 
+        self.max_columns: int = int(parameters.get('max_columns', 4))
+
         self.row = 0
         self.column = 0
         self.modules: dict = {}
+        self.spacer: dict = {}
 
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_message = self.mqtt_on_message
-        self.mqtt_client.username_pw_set(username, password)
-        self.mqtt_client.connect(host=host, port=1883, keepalive=60)
+        self.mqtt_client.username_pw_set(parameters['username'], parameters['password'])
+        self.mqtt_client.connect(host=parameters['host'], port=1883, keepalive=60)
 
         self.mqtt_client.loop_start()
 
@@ -48,7 +52,7 @@ class MqttLiveWindow(Ui_MainWindow):
             label.setObjectName("label")
             label.setText(identifier)
             vertical_layout.addWidget(label)
-            cells = {}
+            cells: dict = {}
             for i in range(1, 13):
                 cell = QtWidgets.QLabel(module)
                 cell.setObjectName("label")
@@ -58,8 +62,21 @@ class MqttLiveWindow(Ui_MainWindow):
                     'widget': cell,
                 }
             self.gridLayout.addWidget(module, self.row, self.column)
+            if 'right' in self.spacer:
+                self.gridLayout.removeItem(self.spacer['right'])
+            self.spacer['right'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding,
+                                                         QtWidgets.QSizePolicy.Minimum)
+            self.gridLayout.addItem(self.spacer['right'], 0, self.column + 1, self.row + 1, 1)
+            print(0, self.column + 1, self.row + 1, 1)
+            if 'bottom' in self.spacer:
+                self.gridLayout.removeItem(self.spacer['bottom'])
+            self.spacer['bottom'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Minimum,
+                                                          QtWidgets.QSizePolicy.Expanding)
+            self.gridLayout.addItem(self.spacer['bottom'], self.row + 1, 0, 1,
+                                    self.max_columns if self.row > 0 else self.column + 1)
+            print(self.row + 1, 0, 1, self.max_columns if self.row > 0 else self.column + 1)
             self.column += 1
-            if self.column >= CONFIG_MAX_COLUMNS:
+            if self.column >= self.max_columns:
                 self.row += 1
                 self.column = 0
             self.modules[identifier] = {
@@ -124,5 +141,18 @@ class MqttLiveWindow(Ui_MainWindow):
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    main_window = MqttLiveWindow('host', 'username', 'password')
-    main_window.show()
+    app = QtWidgets.QApplication(sys.argv)
+    parameters_file: Path = Path('mqtt_live.yaml')
+    params: dict = get_config_local(parameters_file)
+    if 'error' in params:
+        params = {
+            'host': '',
+            'username': '',
+            'password': '',
+            'max_columns': 4,
+        }
+        save_config_local(parameters_file, params)
+    if SettingsDialog(params).result == 1:
+        save_config_local(Path('mqtt_live.yaml'), params)
+        main_window = MqttLiveWindow(params)
+        main_window.show()
