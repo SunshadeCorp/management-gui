@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 
 from custom_signal_window import CustomSignalWindow
 from settings_dialog import SettingsDialog
@@ -33,9 +33,14 @@ class MqttLiveWindow(Ui_MainWindow):
 
         self.mqtt_client.loop_start()
 
+        QtCore.QTimer.singleShot(100, self.resize_window)
+
     def show(self):
         self.main_window.show()
         self.app.exec_()
+
+    def resize_window(self):
+        self.main_window.resize(0, 0)
 
     @staticmethod
     def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
