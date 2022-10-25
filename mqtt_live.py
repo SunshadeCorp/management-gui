@@ -67,19 +67,15 @@ class MqttLiveWindow(Ui_MainWindow):
                     'widget': cell,
                 }
             self.gridLayout.addWidget(module, self.row, self.column)
-            if 'right' in self.spacer:
-                self.gridLayout.removeItem(self.spacer['right'])
-            self.spacer['right'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding,
-                                                         QtWidgets.QSizePolicy.Minimum)
-            self.gridLayout.addItem(self.spacer['right'], 0, self.column + 1, self.row + 1, 1)
-            print(0, self.column + 1, self.row + 1, 1)
+            if 'right' not in self.spacer:
+                self.spacer['right'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding,
+                                                             QtWidgets.QSizePolicy.Minimum)
+                self.gridLayout.addItem(self.spacer['right'], 0, self.max_columns)
             if 'bottom' in self.spacer:
                 self.gridLayout.removeItem(self.spacer['bottom'])
             self.spacer['bottom'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Minimum,
                                                           QtWidgets.QSizePolicy.Expanding)
-            self.gridLayout.addItem(self.spacer['bottom'], self.row + 1, 0, 1,
-                                    self.max_columns if self.row > 0 else self.column + 1)
-            print(self.row + 1, 0, 1, self.max_columns if self.row > 0 else self.column + 1)
+            self.gridLayout.addItem(self.spacer['bottom'], self.row + 1, 0)
             self.column += 1
             if self.column >= self.max_columns:
                 self.row += 1
