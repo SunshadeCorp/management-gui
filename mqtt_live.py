@@ -2,14 +2,37 @@ import os
 import statistics
 import sys
 from pathlib import Path
-
 import paho.mqtt.client as mqtt
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 
 from custom_signal_window import CustomSignalWindow
+from drag_widget import DragWidget
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
 from utils import save_config_local, get_config_local
+from utils_qt import exchange_widget_positions
+
+
+class ModuleWidget(DragWidget):
+    on_drop = QtCore.pyqtSignal(dict)
+
+    def __init__(self, parent: QtWidgets.QWidget):
+        super().__init__(parent)
+        self.last_style_sheet: str = ''
+
+    def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
+        if a0.source() is self:
+            return
+        self.last_style_sheet = self.styleSheet()
+        self.setStyleSheet('background-color: brown;')
+        a0.accept()
+
+    def dragLeaveEvent(self, a0: QtGui.QDragLeaveEvent) -> None:
+        self.setStyleSheet(self.last_style_sheet)
+
+    def dropEvent(self, a0: QtGui.QDropEvent) -> None:
+        self.setStyleSheet(self.last_style_sheet)
+        self.on_drop.emit({'self': self, 'widget': a0.source()})
 
 
 class MqttLiveWindow(Ui_MainWindow):
@@ -42,14 +65,18 @@ class MqttLiveWindow(Ui_MainWindow):
     def resize_window(self):
         self.main_window.resize(0, 0)
 
+    def module_dragged(self, infos: dict):
+        exchange_widget_positions(self.gridLayout, infos['self'], infos['widget'])
+
     @staticmethod
     def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
         client.subscribe('esp-module/#')
 
     def add_widget(self, identifier: str):
         if identifier not in self.modules:
-            module = QtWidgets.QWidget(self.centralwidget)
+            module = ModuleWidget(self.centralwidget)
             module.setObjectName("Form")
+            module.on_drop.connect(self.module_dragged)
             # module.resize(100, 100)
             vertical_layout = QtWidgets.QVBoxLayout(module)
             vertical_layout.setObjectName("verticalLayout")
