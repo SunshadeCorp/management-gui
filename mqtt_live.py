@@ -2,6 +2,7 @@ import os
 import statistics
 import sys
 from pathlib import Path
+
 import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets, QtCore, QtGui
 
@@ -14,8 +15,6 @@ from utils_qt import exchange_widget_positions
 
 
 class ModuleWidget(DragWidget):
-    on_drop = QtCore.pyqtSignal(dict)
-
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.last_style_sheet: str = ''
@@ -31,8 +30,8 @@ class ModuleWidget(DragWidget):
         self.setStyleSheet(self.last_style_sheet)
 
     def dropEvent(self, a0: QtGui.QDropEvent) -> None:
+        super(ModuleWidget, self).dropEvent(a0)
         self.setStyleSheet(self.last_style_sheet)
-        self.on_drop.emit({'self': self, 'widget': a0.source()})
 
 
 class MqttLiveWindow(Ui_MainWindow):
@@ -65,6 +64,12 @@ class MqttLiveWindow(Ui_MainWindow):
     def resize_window(self):
         self.main_window.resize(0, 0)
 
+    def module_drag_start(self, infos: dict):
+        for identifier in self.modules:
+            if self.modules[identifier]['widget'] == infos['self']:
+                self.mqtt_client.publish(f'esp-module/{identifier}/blink', 1)
+                break
+
     def module_dragged(self, infos: dict):
         exchange_widget_positions(self.gridLayout, infos['self'], infos['widget'])
 
@@ -77,6 +82,7 @@ class MqttLiveWindow(Ui_MainWindow):
             module = ModuleWidget(self.centralwidget)
             module.setObjectName("Form")
             module.on_drop.connect(self.module_dragged)
+            module.on_drag_start.connect(self.module_drag_start)
             # module.resize(100, 100)
             vertical_layout = QtWidgets.QVBoxLayout(module)
             vertical_layout.setObjectName("verticalLayout")
