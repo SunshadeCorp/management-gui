@@ -126,6 +126,9 @@ class MqttLiveWindow(Ui_MainWindow):
             if data['available'] == 'offline':
                 widget: QtWidgets.QWidget = module['widget']
                 widget.setStyleSheet('background-color: grey;')
+            if data['available'] == 'online':
+                widget: QtWidgets.QWidget = module['widget']
+                widget.setStyleSheet('')
             return
         voltage: float = float(data['value'])
         cell: QtWidgets.QLabel = module['cells'][data['number']]['widget']
@@ -133,8 +136,10 @@ class MqttLiveWindow(Ui_MainWindow):
         cell.setText(f"{data['number']}: {data['value']}")
         voltages: list[float] = []
         for cell_number in module['cells']:
+            module['cells'][cell_number]['widget'].setStyleSheet('')
             if 'voltage' in module['cells'][cell_number]:
                 voltages.append(module['cells'][cell_number]['voltage'])
+        cell.setStyleSheet('background-color: green;')
         median_voltage: float = statistics.median(voltages)
         module['header'].setText(f"{data['identifier']}: {median_voltage:.3f}")
         for cell_number in module['cells']:
