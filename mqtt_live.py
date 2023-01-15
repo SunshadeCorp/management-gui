@@ -1,7 +1,6 @@
 import os
 import statistics
 import sys
-from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets, QtCore, QtGui
@@ -10,7 +9,6 @@ from custom_signal_window import CustomSignalWindow
 from drag_widget import DragWidget
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
-from utils import save_config_local, get_config_local
 from utils_qt import exchange_widget_positions
 
 
@@ -181,17 +179,14 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QtWidgets.QApplication(sys.argv)
-    parameters_file: Path = Path('mqtt_live.yaml')
-    params: dict = get_config_local(parameters_file)
-    if 'error' in params:
-        params = {
-            'host': '',
-            'username': '',
-            'password': '',
-            'max_columns': 4,
-        }
-        save_config_local(parameters_file, params)
-    if SettingsDialog(params).result == 1:
-        save_config_local(Path('mqtt_live.yaml'), params)
-        main_window = MqttLiveWindow(params)
+    default_params = {
+        'host': '',
+        'username': '',
+        'password': '',
+        'max_columns': 4,
+    }
+    parameters_file: str = 'mqtt_live.yaml'
+    settings_dialog = SettingsDialog(default_params, parameters_file)
+    if settings_dialog.result == 1:
+        main_window = MqttLiveWindow(settings_dialog.configuration)
         main_window.show()
