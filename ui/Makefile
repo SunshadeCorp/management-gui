@@ -1,4 +1,4 @@
-all: main.py settings.py
+all: main.py settings.py mqtt_live.py
 
 clean:
 	rm -f *.py
