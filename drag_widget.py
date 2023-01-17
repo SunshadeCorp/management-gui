@@ -1,0 +1,39 @@
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
+
+
+class DragWidget(QtWidgets.QWidget):
+    on_drop = QtCore.pyqtSignal(dict)
+    on_drag_start = QtCore.pyqtSignal(dict)
+    on_drag_end = QtCore.pyqtSignal(dict)
+
+    def __init__(self, parent: QtWidgets.QWidget):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, a0: QtGui.QDragEnterEvent) -> None:
+        a0.accept()
+
+    def drag_end_event(self):
+        self.on_drag_end.emit({'self': self})
+
+    def dropEvent(self, a0: QtGui.QDropEvent) -> None:
+        self.on_drop.emit({'self': self, 'widget': a0.source()})
+
+    def mouseMoveEvent(self, a0: QtGui.QMouseEvent) -> None:
+        if a0.buttons() == Qt.LeftButton:
+            drag = QtGui.QDrag(self)
+            mime = QtCore.QMimeData()
+            drag.setMimeData(mime)
+            drag.destroyed.connect(self.drag_end_event)
+            pixmap = QtGui.QPixmap(self.size())
+            self.render(pixmap)
+            drag.setPixmap(pixmap)
+            self.on_drag_start.emit({'self': self})
+            drag.exec_(Qt.MoveAction)
+
+    def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+        o = QtWidgets.QStyleOption()
+        o.initFrom(self)
+        p = QtGui.QPainter(self)
+        self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, o, p, self)

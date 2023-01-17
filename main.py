@@ -5,34 +5,20 @@ import threading
 from pathlib import Path
 
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow
 from fabric import Connection
 
 from config_reader import ConfigReader
 from credentials import Credentials
+from custom_signal_window import CustomSignalWindow
 from docker_container import DockerContainer
 from modbus import Modbus
+from mqtt_live import MqttLiveWindow
 from settings_dialog import SettingsDialog
 from slave_mapping import SlaveMapping
 from ui.main import Ui_MainWindow
 from utils import get_config_local, save_config_local
 
 CONFIG_FILE = Path('config.yaml')
-
-
-class CustomSignalWindow(QMainWindow):
-    signal = QtCore.pyqtSignal(dict)
-
-    def __init__(self):
-        super().__init__()
-        self.signal.connect(self.signaling)
-
-    @staticmethod
-    def signaling(work: dict):
-        if 'arg' in work:
-            work['func'](work['arg'])
-        else:
-            work['func']()
 
 
 class MainWindow(Ui_MainWindow):
@@ -42,6 +28,7 @@ class MainWindow(Ui_MainWindow):
         self.setupUi(self.main_window)
 
         self.actionconfig.triggered.connect(self.show_settings_dialog)
+        self.actionmqtt_live.triggered.connect(self.show_mqtt_live)
 
         self.queue = queue.Queue()
 
@@ -78,6 +65,16 @@ class MainWindow(Ui_MainWindow):
     def show(self):
         self.main_window.show()
         self.app.exec_()
+
+    def show_mqtt_live(self):
+        store = self.reader_list['credentials'].store
+        parameters: dict = {
+            'host': self.config['host'],
+            'username': store['mqtt_user'],
+            'password': store['mqtt_password'],
+        }
+        w = MqttLiveWindow(parameters)
+        w.show()
 
     def get_connection(self):
         return Connection(host=self.config['host'], user=self.config['user'],

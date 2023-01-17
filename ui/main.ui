@@ -47,6 +47,8 @@
      <string>Menu</string>
     </property>
     <addaction name="actionconfig"/>
+    <addaction name="separator"/>
+    <addaction name="actionmqtt_live"/>
    </widget>
    <addaction name="menuconfig"/>
   </widget>
@@ -54,6 +56,11 @@
   <action name="actionconfig">
    <property name="text">
     <string>settings</string>
+   </property>
+  </action>
+  <action name="actionmqtt_live">
+   <property name="text">
+    <string>mqtt_live</string>
    </property>
   </action>
  </widget>
