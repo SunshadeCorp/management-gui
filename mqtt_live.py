@@ -127,25 +127,32 @@ class MqttLiveWindow(Ui_MainWindow):
             if data['available'] == 'online':
                 widget: QtWidgets.QWidget = module['widget']
                 widget.setStyleSheet('')
-            return
-        voltage: float = float(data['value'])
-        cell: QtWidgets.QLabel = module['cells'][data['number']]['widget']
-        module['cells'][data['number']]['voltage'] = voltage
-        cell.setText(f"{data['number']}: {data['value']}")
-        voltages: list[float] = []
-        for cell_number in module['cells']:
-            module['cells'][cell_number]['widget'].setStyleSheet('')
-            if 'voltage' in module['cells'][cell_number]:
-                voltages.append(module['cells'][cell_number]['voltage'])
-        cell.setStyleSheet('background-color: green;')
-        median_voltage: float = statistics.median(voltages)
-        module['header'].setText(f"{data['identifier']}: {median_voltage:.3f}")
-        for cell_number in module['cells']:
-            if 'voltage' in module['cells'][cell_number]:
-                if abs(module['cells'][cell_number]['voltage'] - median_voltage) >= 0.01:
-                    module['cells'][cell_number]['widget'].setStyleSheet('background-color: red;')
-                else:
-                    module['cells'][cell_number]['widget'].setStyleSheet('')
+        elif 'voltage' in data:
+            voltage: float = float(data['voltage'])
+            module['cells'][data['number']]['voltage'] = voltage
+            cell: QtWidgets.QLabel = module['cells'][data['number']]['widget']
+            balancing_text = ' (+)' if module['cells'][data['number']].get('is_balancing', False) else ''
+            cell.setText(f"{data['number']}: {data['voltage']}{balancing_text}")
+            voltages: list[float] = []
+            for cell_number in module['cells']:
+                module['cells'][cell_number]['widget'].setStyleSheet('')
+                if 'voltage' in module['cells'][cell_number]:
+                    voltages.append(module['cells'][cell_number]['voltage'])
+            cell.setStyleSheet('background-color: green;')
+            median_voltage: float = statistics.median(voltages)
+            module['header'].setText(f"{data['identifier']}: {median_voltage:.3f}")
+            for cell_number in module['cells']:
+                if 'voltage' in module['cells'][cell_number]:
+                    if abs(module['cells'][cell_number]['voltage'] - median_voltage) >= 0.01:
+                        module['cells'][cell_number]['widget'].setStyleSheet('background-color: red;')
+                    else:
+                        module['cells'][cell_number]['widget'].setStyleSheet('')
+        elif 'is_balancing' in data:
+            is_balancing: bool = bool(int(data['is_balancing']))
+            cell: dict = module['cells'][data['number']]
+            cell['is_balancing'] = is_balancing
+            balancing_text = ' (+)' if is_balancing else ''
+            cell['widget'].setText(f"{data['number']}: {cell.get('voltage', -1):.3f}{balancing_text}")
 
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
         topic = msg.topic[msg.topic.find('/') + 1:]
@@ -170,7 +177,14 @@ class MqttLiveWindow(Ui_MainWindow):
                 data = {
                     'identifier': identifier,
                     'number': number,
-                    'value': msg.payload.decode()
+                    'voltage': msg.payload.decode()
+                }
+                self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
+            elif topic == 'is_balancing':
+                data = {
+                    'identifier': identifier,
+                    'number': number,
+                    'is_balancing': msg.payload.decode()
                 }
                 self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
 
