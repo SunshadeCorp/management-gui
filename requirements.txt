@@ -1,0 +1,17 @@
+PyNaCl
+PyQt5
+PyQt5-Qt5
+PyQt5-sip
+PyQt5-stubs
+PyYAML
+bcrypt
+cffi
+cryptography
+fabric
+invoke
+paho-mqtt
+pathlib2
+pycparser
+setuptools
+six
+wheel
