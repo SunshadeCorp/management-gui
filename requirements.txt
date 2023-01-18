@@ -1,0 +1,4 @@
+PyQt5~=5.15.7
+PyYAML~=6.0
+fabric~=2.7.1
+paho-mqtt~=1.6.1
