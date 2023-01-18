@@ -1,8 +1,24 @@
-# Do this to create a settings.py:
-# You need mingw32 for this
+# management-gui
 
-cd .\ui\
+Manage EasyBMS installation and show live data.
+
+## setup
+
+`choco install git mingw`
+
+`pip install --prefer-binary -r requirements.txt`
+
+```
+cd ui
 make
+```
 
-# Execute this
-python mqtt_live.py
+## run
+
+mqtt live:
+
+`python mqtt_live.py`
+
+main:
+
+`python main.py`
