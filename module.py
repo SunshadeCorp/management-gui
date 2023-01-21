@@ -1,24 +1,70 @@
+import paho.mqtt.client as mqtt
 import statistics
-
 from PyQt5 import QtWidgets
-
 from cell import Cell
+from module_widget import ModuleWidget
+from utils_qt import exchange_widget_positions
 
 
 class Module:
-    def __init__(self, identifier, widget, layout, header, cells, module_temps, chip_temp):
+    TOPICS: list = [
+        'available',
+        'chip_temp',
+        'module_temps',
+        'module_topic',
+        'module_voltage',
+        'total_system_current',
+        'total_system_voltage'
+    ]
+
+    def __init__(self, identifier: str, parent: QtWidgets.QWidget, grid_layout: QtWidgets.QGridLayout,
+                 mqtt_client: mqtt.Client):
         self.identifier = identifier
-        self.widget: QtWidgets.QWidget = widget
-        self.layout = layout
-        self.header: QtWidgets.QLabel = header
-        self.cells: dict[int, Cell] = cells
-        self.module_temps: QtWidgets.QLabel = module_temps
-        self.chip_temp: QtWidgets.QLabel = chip_temp
+        self.grid_layout = grid_layout
+        self.mqtt_client = mqtt_client
         self.mac = None
         self.hidden = False
         self.number = None
         self.available = None
         self.median_voltage: float = 0.0
+
+        self.widget: ModuleWidget = ModuleWidget(parent)
+        self.widget.setObjectName("Form")
+        self.widget.on_drop.connect(self.module_dragged)
+        self.widget.on_drag_start.connect(self.drag_start)
+        # module_widget.resize(100, 100)
+        self.layout = QtWidgets.QVBoxLayout(self.widget)
+        self.layout.setObjectName("verticalLayout")
+        self.header: QtWidgets.QLabel = QtWidgets.QLabel(self.widget)
+        self.header.setObjectName("label")
+        self.header.setText(identifier)
+        font = self.header.font()
+        font.setBold(True)
+        self.header.setFont(font)
+        self.layout.addWidget(self.header)
+        self.module_temps: QtWidgets.QLabel = QtWidgets.QLabel(self.widget)
+        self.module_temps.setText('-,-')
+        self.layout.addWidget(self.module_temps)
+        self.chip_temp = QtWidgets.QLabel(self.widget)
+        self.chip_temp.setText('-')
+        self.layout.addWidget(self.chip_temp)
+        self.cells: dict[int, Cell] = {}
+        for i in range(1, 13):
+            cell_label = QtWidgets.QLabel(self.widget)
+            cell_label.setObjectName("label")
+            cell_label.setText(f'{i}:')
+            self.layout.addWidget(cell_label)
+            self.cells[i] = Cell(cell_label)
+        self.module_voltage = QtWidgets.QLabel(self.widget)
+        self.module_voltage.setText('-')
+        self.layout.addWidget(self.module_voltage)
+
+    def drag_start(self, infos: dict):
+        self.mqtt_client.publish(f'esp-module/{self.get_topic()}/blink', 1)
+        print(self.get_topic())
+
+    def module_dragged(self, infos: dict):
+        exchange_widget_positions(self.grid_layout, self.widget, infos['widget'])
 
     def get_topic(self):
         if self.mac is not None:
@@ -35,6 +81,10 @@ class Module:
             if self.cells[cell_number].voltage is not None:
                 voltages.append(self.cells[cell_number].voltage)
         return statistics.median(voltages)
+
+    def calc_voltage(self) -> float:
+        return sum(self.cells[cell_number].voltage for cell_number in self.cells if
+                   self.cells[cell_number].voltage is not None)
 
     def is_available(self) -> bool:
         if self.available is None:
@@ -82,9 +132,25 @@ class Module:
     def set_chip_temp(self, value: str):
         chip_temp: float = float(value)
         self.chip_temp.setText(f'{chip_temp:.2f} °C')
-        if chip_temp >= 50.0:
-            self.chip_temp.setStyleSheet('background-color: #ffff80;')
-        elif chip_temp >= 60.0:
+        if chip_temp >= 60.0:
             self.chip_temp.setStyleSheet('background-color: #ffb366;')
+        elif chip_temp >= 50.0:
+            self.chip_temp.setStyleSheet('background-color: #ffff80;')
         else:
             self.chip_temp.setStyleSheet('')
+
+    def set_voltage(self, value: str):
+        ltc_voltage: float = float(value)
+        calc_voltage: float = self.calc_voltage()
+        diff: float = abs(ltc_voltage - calc_voltage)
+        if diff > 0.1:
+            self.module_voltage.setStyleSheet('background-color: #ff3300;')
+        elif diff > 0.05:
+            self.module_voltage.setStyleSheet('background-color: #ff8566;')
+        elif diff > 0.02:
+            self.module_voltage.setStyleSheet('background-color: #ffb366;')
+        elif diff > 0.01:
+            self.module_voltage.setStyleSheet('background-color: #ffff80;')
+        else:
+            self.module_voltage.setStyleSheet('')
+        self.module_voltage.setText(f"{ltc_voltage:.2f}, {calc_voltage:.3f}, {diff:.3f}")

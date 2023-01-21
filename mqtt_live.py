@@ -8,13 +8,16 @@ from PyQt5 import QtWidgets, QtCore
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
 from module import Module
-from module_widget import ModuleWidget
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
-from utils_qt import exchange_widget_positions
 
 
 class MqttLiveWindow(Ui_MainWindow):
+    CELL_TOPICS: list = [
+        'voltage',
+        'is_balancing'
+    ]
+
     def __init__(self, parameters: dict):
         self.app = QtWidgets.QApplication(sys.argv)
         self.main_window = CustomSignalWindow()
@@ -48,17 +51,6 @@ class MqttLiveWindow(Ui_MainWindow):
     def resize_window(self):
         self.main_window.resize(0, 0)
 
-    def module_drag_start(self, infos: dict):
-        for identifier in self.modules:
-            module = self.modules[identifier]
-            if module.widget == infos['self']:
-                self.mqtt_client.publish(f'esp-module/{module.get_topic()}/blink', 1)
-                print(module.get_topic())
-                break
-
-    def module_dragged(self, infos: dict):
-        exchange_widget_positions(self.gridLayout, infos['self'], infos['widget'])
-
     def sort_modules(self):
         for identifier in self.modules:
             self.modules[identifier].widget.setParent(None)
@@ -75,36 +67,9 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def add_widget(self, identifier: str):
         if identifier not in self.modules:
-            module_widget = ModuleWidget(self.centralwidget)
-            module_widget.setObjectName("Form")
-            module_widget.on_drop.connect(self.module_dragged)
-            module_widget.on_drag_start.connect(self.module_drag_start)
-            # module_widget.resize(100, 100)
-            vertical_layout = QtWidgets.QVBoxLayout(module_widget)
-            vertical_layout.setObjectName("verticalLayout")
-            label = QtWidgets.QLabel(module_widget)
-            label.setObjectName("label")
-            label.setText(identifier)
-            font = label.font()
-            font.setBold(True)
-            label.setFont(font)
-            vertical_layout.addWidget(label)
-            module_temps = QtWidgets.QLabel(module_widget)
-            module_temps.setText('-,-')
-            vertical_layout.addWidget(module_temps)
-            chip_temp = QtWidgets.QLabel(module_widget)
-            chip_temp.setText('-')
-            vertical_layout.addWidget(chip_temp)
-            cells: dict[int, Cell] = {}
-            for i in range(1, 13):
-                cell_label = QtWidgets.QLabel(module_widget)
-                cell_label.setObjectName("label")
-                cell_label.setText(f'{i}:')
-                vertical_layout.addWidget(cell_label)
-                cells[i] = Cell(cell_label)
-            self.add_widget_to_grid(module_widget)
-            self.modules[identifier] = Module(identifier, module_widget, vertical_layout, label, cells, module_temps,
-                                              chip_temp)
+            module = Module(identifier, self.centralwidget, self.gridLayout, self.mqtt_client)
+            self.add_widget_to_grid(module.widget)
+            self.modules[identifier] = module
 
     def add_widget_to_grid(self, widget):
         if 'right' not in self.spacer:
@@ -148,10 +113,12 @@ class MqttLiveWindow(Ui_MainWindow):
             self.main_window.statusBar().showMessage(f'{self.total_system_voltage} V'
                                                      f', {self.total_system_current} A'
                                                      f', {self.total_system_voltage * self.total_system_current:.2f} W')
-        elif 'module_temps' in data:
-            module.module_temps.setText(data['module_temps'])
         elif 'chip_temp' in data:
             module.set_chip_temp(data['chip_temp'])
+        elif 'module_temps' in data:
+            module.module_temps.setText(data['module_temps'])
+        elif 'module_voltage' in data:
+            module.set_voltage(data['module_voltage'])
         elif 'voltage' in data:
             module.update_cell_voltage(data['number'], float(data['voltage']))
             module.color_median_voltage(self.cell_min + 0.01)
@@ -181,31 +148,29 @@ class MqttLiveWindow(Ui_MainWindow):
                                         f', {self.cell_min:.3f} V min'
                                         f', {cell_max:.3f} V max')
 
-    def emit_signal_set_widget(self, identifier, topic, msg):
+    def emit_signal_set_module(self, identifier: str, topic: str, msg):
         data = {
             'identifier': identifier,
             topic: msg.payload.decode()
         }
         self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
 
+    def emit_signal_set_cell(self, identifier: str, number: int, topic: str, msg):
+        data = {
+            'identifier': identifier,
+            'number': number,
+            topic: msg.payload.decode()
+        }
+        self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
+
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
-        topic = msg.topic[msg.topic.find('/') + 1:]
-        identifier = topic[:topic.find('/')]
+        topic: str = msg.topic[msg.topic.find('/') + 1:]
+        identifier: str = topic[:topic.find('/')]
         self.main_window.signal.emit({'func': self.add_widget, 'arg': identifier})
         topic = topic[topic.find('/') + 1:]
         # print(identifier, topic)
-        if topic == 'available':
-            self.emit_signal_set_widget(identifier, topic, msg)
-        elif topic == 'total_system_voltage':
-            self.emit_signal_set_widget(identifier, topic, msg)
-        elif topic == 'total_system_current':
-            self.emit_signal_set_widget(identifier, topic, msg)
-        elif topic == 'chip_temp':
-            self.emit_signal_set_widget(identifier, topic, msg)
-        elif topic == 'module_temps':
-            self.emit_signal_set_widget(identifier, topic, msg)
-        elif topic == 'module_topic':
-            self.emit_signal_set_widget(identifier, topic, msg)
+        if topic in Module.TOPICS:
+            self.emit_signal_set_module(identifier, topic, msg)
         elif topic == 'uptime' and identifier == '1':
             self.main_window.signal.emit({'func': self.calc_cell_diff})
         elif topic.startswith('cell/'):
@@ -213,34 +178,20 @@ class MqttLiveWindow(Ui_MainWindow):
             number = topic[:topic.find('/')]
             topic = topic[topic.find('/') + 1:]
             number = int(number)
-            if topic == 'voltage':
-                data = {
-                    'identifier': identifier,
-                    'number': number,
-                    'voltage': msg.payload.decode()
-                }
-                self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
-            elif topic == 'is_balancing':
-                data = {
-                    'identifier': identifier,
-                    'number': number,
-                    'is_balancing': msg.payload.decode()
-                }
-                self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
+            if topic in self.CELL_TOPICS:
+                self.emit_signal_set_cell(identifier, number, topic, msg)
 
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QtWidgets.QApplication(sys.argv)
-    default_params = {
+    settings_dialog = SettingsDialog({
         'host': '',
         'username': '',
         'password': '',
         'max_columns': 4,
-    }
-    parameters_file: str = 'mqtt_live.yaml'
-    settings_dialog = SettingsDialog(default_params, parameters_file)
+    }, 'mqtt_live.yaml')
     if settings_dialog.result == 1:
         main_window = MqttLiveWindow(settings_dialog.configuration)
         main_window.show()
