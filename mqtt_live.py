@@ -91,6 +91,17 @@ class MqttLiveWindow(Ui_MainWindow):
         module.hidden = value
         QtCore.QTimer.singleShot(200, self.sort_modules)
 
+    def print_status_bar(self):
+        mod_sum_voltage: float = sum(self.modules[identifier].module_voltage for identifier in self.modules
+                                     if not self.modules[identifier].hidden)
+        cell_sum_voltage: float = sum(self.modules[identifier].cell_sum_voltage for identifier in self.modules
+                                      if not self.modules[identifier].hidden)
+        self.main_window.statusBar().showMessage(f'{self.total_system_voltage} V'
+                                                 f', {self.total_system_current} A'
+                                                 f', {self.total_system_voltage * self.total_system_current:.2f} W'
+                                                 f', {mod_sum_voltage:.2f} V'
+                                                 f', {cell_sum_voltage:.2f} V')
+
     def set_widget(self, data: dict):
         module = self.modules[data['identifier']]
         if 'available' in data:
@@ -105,14 +116,10 @@ class MqttLiveWindow(Ui_MainWindow):
                 self.set_module_hidden(module, True)
         elif 'total_system_voltage' in data:
             self.total_system_voltage = float(data['total_system_voltage'])
-            self.main_window.statusBar().showMessage(f'{self.total_system_voltage} V'
-                                                     f', {self.total_system_current} A'
-                                                     f', {self.total_system_voltage * self.total_system_current:.2f} W')
+            self.print_status_bar()
         elif 'total_system_current' in data:
             self.total_system_current = float(data['total_system_current'].split(',')[1]) * -1.0
-            self.main_window.statusBar().showMessage(f'{self.total_system_voltage} V'
-                                                     f', {self.total_system_current} A'
-                                                     f', {self.total_system_voltage * self.total_system_current:.2f} W')
+            self.print_status_bar()
         elif 'chip_temp' in data:
             module.set_chip_temp(data['chip_temp'])
         elif 'module_temps' in data:

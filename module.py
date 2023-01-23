@@ -26,7 +26,9 @@ class Module:
         self.hidden = False
         self.number = None
         self.available = None
-        self.median_voltage: float = 0.0
+        self.module_voltage: float = 0.0
+        self.cell_median_voltage: float = 0.0
+        self.cell_sum_voltage: float = 0.0
 
         self.widget: ModuleWidget = ModuleWidget(parent)
         self.widget.setObjectName("Form")
@@ -55,9 +57,9 @@ class Module:
             cell_label.setText(f'{i}:')
             self.layout.addWidget(cell_label)
             self.cells[i] = Cell(cell_label)
-        self.module_voltage = QtWidgets.QLabel(self.widget)
-        self.module_voltage.setText('-')
-        self.layout.addWidget(self.module_voltage)
+        self.module_voltage_label = QtWidgets.QLabel(self.widget)
+        self.module_voltage_label.setText('-')
+        self.layout.addWidget(self.module_voltage_label)
 
     def drag_start(self, infos: dict):
         self.mqtt_client.publish(f'esp-module/{self.get_topic()}/blink', 1)
@@ -111,20 +113,20 @@ class Module:
         cell.voltage = voltage
         balancing_text = ' (+)' if cell.is_balancing else ''
         cell.label.setText(f"{number}: {voltage}{balancing_text}")
-        self.median_voltage: float = self.get_median_voltage()
-        self.header.setText(f'{self.get_title()}: {self.median_voltage:.3f}')
+        self.cell_median_voltage: float = self.get_median_voltage()
+        self.header.setText(f'{self.get_title()}: {self.cell_median_voltage:.3f}')
         for cell_number in self.cells:
             current_cell = self.cells[cell_number]
             if current_cell.voltage is not None:
-                if current_cell.voltage - self.median_voltage >= 0.01:
+                if current_cell.voltage - self.cell_median_voltage >= 0.01:
                     current_cell.label.setStyleSheet('background-color: #ff5c33;')
-                elif current_cell.voltage - self.median_voltage <= -0.01:
+                elif current_cell.voltage - self.cell_median_voltage <= -0.01:
                     current_cell.label.setStyleSheet('background-color: #3399ff;')
                 else:
                     current_cell.label.setStyleSheet('')
 
     def color_median_voltage(self, min_voltage: float):
-        if self.median_voltage > min_voltage:
+        if self.cell_median_voltage > min_voltage:
             self.header.setStyleSheet('background-color: #ff5c33;')
         else:
             self.header.setStyleSheet('')
@@ -140,17 +142,17 @@ class Module:
             self.chip_temp.setStyleSheet('')
 
     def set_voltage(self, value: str):
-        ltc_voltage: float = float(value)
-        calc_voltage: float = self.calc_voltage()
-        diff: float = abs(ltc_voltage - calc_voltage)
+        self.module_voltage: float = float(value)
+        self.cell_sum_voltage: float = self.calc_voltage()
+        diff: float = abs(self.module_voltage - self.cell_sum_voltage)
         if diff > 0.1:
-            self.module_voltage.setStyleSheet('background-color: #ff3300;')
+            self.module_voltage_label.setStyleSheet('background-color: #ff3300;')
         elif diff > 0.05:
-            self.module_voltage.setStyleSheet('background-color: #ff8566;')
+            self.module_voltage_label.setStyleSheet('background-color: #ff8566;')
         elif diff > 0.02:
-            self.module_voltage.setStyleSheet('background-color: #ffb366;')
+            self.module_voltage_label.setStyleSheet('background-color: #ffb366;')
         elif diff > 0.01:
-            self.module_voltage.setStyleSheet('background-color: #ffff80;')
+            self.module_voltage_label.setStyleSheet('background-color: #ffff80;')
         else:
-            self.module_voltage.setStyleSheet('')
-        self.module_voltage.setText(f"{ltc_voltage:.2f}, {calc_voltage:.3f}, {diff:.3f}")
+            self.module_voltage_label.setStyleSheet('')
+        self.module_voltage_label.setText(f"{self.module_voltage:.2f}, {self.cell_sum_voltage:.3f}, {diff:.3f}")
