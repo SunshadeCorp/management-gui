@@ -24,6 +24,13 @@ class MqttLiveWindow(Ui_MainWindow):
         self.setupUi(self.main_window)
 
         self.max_columns: int = int(parameters.get('max_columns', 4))
+        self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
+
+        self.hide_modules: set[str] = set()
+        hide_modules = parameters.get('hide_modules', 'none')
+        if hide_modules != '' and hide_modules.lower() != 'none':
+            modules: list[str] = hide_modules.split(',')
+            self.hide_modules: set[str] = set(modules)
 
         self.row = 0
         self.column = 0
@@ -44,6 +51,10 @@ class MqttLiveWindow(Ui_MainWindow):
 
         QtCore.QTimer.singleShot(100, self.resize_window)
 
+        timer = QtCore.QTimer(self.main_window)
+        timer.timeout.connect(self.calc_cell_diff)
+        timer.start(1000)
+
     def show(self):
         self.main_window.show()
         self.app.exec_()
@@ -57,8 +68,9 @@ class MqttLiveWindow(Ui_MainWindow):
         self.row = 0
         self.column = 0
         for identifier in sorted(self.modules):
-            if not self.modules[identifier].hidden:
-                self.add_widget_to_grid(self.modules[identifier].widget)
+            if self.modules[identifier].hidden and not self.show_hidden:
+                continue
+            self.add_widget_to_grid(self.modules[identifier].widget)
         QtCore.QTimer.singleShot(100, self.resize_window)
 
     @staticmethod
@@ -88,7 +100,7 @@ class MqttLiveWindow(Ui_MainWindow):
             self.column = 0
 
     def set_module_hidden(self, module: Module, value: bool):
-        module.hidden = value
+        module.hidden = True if module.identifier in self.hide_modules else value
         QtCore.QTimer.singleShot(200, self.sort_modules)
 
     def print_status_bar(self):
@@ -137,6 +149,7 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def calc_cell_diff(self):
         voltages: list[float] = []
+        socs: list[float] = []
         for ident in self.modules:
             if self.modules[ident].hidden:
                 continue
@@ -144,16 +157,25 @@ class MqttLiveWindow(Ui_MainWindow):
                 cell: Cell = self.modules[ident].cells[cell_number]
                 if cell.voltage is not None:
                     voltages.append(cell.voltage)
-        cell_max: float = max(voltages)
+                    socs.append(cell.get_soc())
         self.cell_min: float = min(voltages)
+        cell_max: float = max(voltages)
         cell_diff: float = (cell_max - self.cell_min) * 1000
         cell_median: float = statistics.median(voltages)
         cell_mean: float = statistics.mean(voltages)
+        soc_min: float = min(socs)
+        soc_max: float = max(socs)
+        soc_median: float = statistics.median(socs)
+        soc_mean: float = statistics.mean(socs)
         self.main_window.setWindowTitle(f'{cell_diff:.0f} mV diff'
                                         f', {cell_median:.3f} V median'
                                         f', {cell_mean:.3f} V mean'
                                         f', {self.cell_min:.3f} V min'
-                                        f', {cell_max:.3f} V max')
+                                        f', {cell_max:.1f} V max'
+                                        f', {soc_median:.1f} % median'
+                                        f', {soc_mean:.1f} % mean'
+                                        f', {soc_min:.1f} % min'
+                                        f', {soc_max:.1f} % max')
 
     def emit_signal_set_module(self, identifier: str, topic: str, msg):
         data = {
@@ -178,8 +200,6 @@ class MqttLiveWindow(Ui_MainWindow):
         # print(identifier, topic)
         if topic in Module.TOPICS:
             self.emit_signal_set_module(identifier, topic, msg)
-        elif topic == 'uptime' and identifier == '1':
-            self.main_window.signal.emit({'func': self.calc_cell_diff})
         elif topic.startswith('cell/'):
             topic = topic[topic.find('/') + 1:]
             number = topic[:topic.find('/')]
@@ -198,6 +218,8 @@ if __name__ == '__main__':
         'username': '',
         'password': '',
         'max_columns': 4,
+        'show_hidden': 0,
+        'hide_modules': 'none',
     }, 'mqtt_live.yaml')
     if settings_dialog.result == 1:
         main_window = MqttLiveWindow(settings_dialog.configuration)

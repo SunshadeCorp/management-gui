@@ -16,7 +16,8 @@ class SettingsDialog(Ui_Dialog):
         self.dialog = QDialog(None, QtCore.Qt.WindowCloseButtonHint)
         self.setupUi(self.dialog)
 
-        self.configuration = configuration
+        self.defaults = configuration
+        self.configuration = copy.deepcopy(self.defaults)
         self.save_file = {'last_used': ''}
 
         if len(config_file) > 0:
@@ -37,9 +38,9 @@ class SettingsDialog(Ui_Dialog):
         self.combo_box.setCurrentText(self.save_file['last_used'])
         self.combo_box.currentTextChanged['QString'].connect(self.combo_box_changed)
         self.gridLayout.addWidget(self.combo_box, 0, 0, 1, 2)
-        for i, key in enumerate(self.configuration):
+        for i, key in enumerate(self.defaults):
             self.gridLayout.addWidget(QLabel(f'{key}:'), i + 1, 0)
-            self.line_edits[key] = QLineEdit(str(self.configuration[key]))
+            self.line_edits[key] = QLineEdit(str(self.configuration.get(key, self.defaults[key])))
             self.gridLayout.addWidget(self.line_edits[key], i + 1, 1)
         self.gridLayout.addItem(spacer, len(self.configuration) + 1, 0, 1, 2)
         self.gridLayout.addWidget(self.buttonBox, len(self.configuration) + 2, 0, 1, 2)
@@ -61,8 +62,8 @@ class SettingsDialog(Ui_Dialog):
 
     def combo_box_changed(self, value: str):
         self.configuration = copy.deepcopy(self.save_file[value])
-        for key in self.configuration:
-            self.line_edits[key].setText(self.configuration[key])
+        for key in self.line_edits:
+            self.line_edits[key].setText(str(self.configuration.get(key, self.defaults[key])))
 
 
 if __name__ == '__main__':
