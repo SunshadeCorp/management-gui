@@ -171,7 +171,7 @@ class MqttLiveWindow(Ui_MainWindow):
                                         f', {cell_median:.3f} V median'
                                         f', {cell_mean:.3f} V mean'
                                         f', {self.cell_min:.3f} V min'
-                                        f', {cell_max:.1f} V max'
+                                        f', {cell_max:.3f} V max'
                                         f', {soc_median:.1f} % median'
                                         f', {soc_mean:.1f} % mean'
                                         f', {soc_min:.1f} % min'
