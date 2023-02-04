@@ -1,6 +1,8 @@
-import paho.mqtt.client as mqtt
 import statistics
+
+import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets
+
 from cell import Cell
 from module_widget import ModuleWidget
 from utils_qt import exchange_widget_positions
@@ -60,6 +62,12 @@ class Module:
         self.module_voltage_label = QtWidgets.QLabel(self.widget)
         self.module_voltage_label.setText('-')
         self.layout.addWidget(self.module_voltage_label)
+
+    def is_mac(self) -> bool:
+        return len(self.identifier) == 12
+
+    def restart(self):
+        self.mqtt_client.publish(f'esp-module/{self.identifier}/restart', 1)
 
     def drag_start(self, infos: dict):
         self.mqtt_client.publish(f'esp-module/{self.get_topic()}/blink', 1)

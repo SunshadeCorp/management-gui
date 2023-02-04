@@ -23,6 +23,8 @@ class MqttLiveWindow(Ui_MainWindow):
         self.main_window = CustomSignalWindow()
         self.setupUi(self.main_window)
 
+        self.actionrestart_all.triggered.connect(self.restart_all)
+
         self.max_columns: int = int(parameters.get('max_columns', 4))
         self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
 
@@ -62,6 +64,11 @@ class MqttLiveWindow(Ui_MainWindow):
     def resize_window(self):
         self.main_window.resize(0, 0)
 
+    def restart_all(self):
+        for identifier in self.modules:
+            if self.modules[identifier].is_mac():
+                self.modules[identifier].restart()
+
     def sort_modules(self):
         for identifier in self.modules:
             self.modules[identifier].widget.setParent(None)
@@ -77,6 +84,7 @@ class MqttLiveWindow(Ui_MainWindow):
     @staticmethod
     def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
         client.subscribe('esp-module/#')
+        client.subscribe('esp-total/#')
 
     def add_widget(self, identifier: str):
         if identifier not in self.modules:
@@ -148,6 +156,14 @@ class MqttLiveWindow(Ui_MainWindow):
             balancing_text = ' (+)' if cell.is_balancing else ''
             cell.label.setText(f"{data['number']}: {cell.get_voltage():.3f}{balancing_text}")
 
+    def set_total(self, data: dict):
+        if 'total_voltage' in data:
+            self.total_system_voltage = float(data['total_voltage'])
+            self.print_status_bar()
+        elif 'total_current' in data:
+            self.total_system_current = float(data['total_current']) * -1.0
+            self.print_status_bar()
+
     def calc_cell_diff(self):
         voltages: list[float] = []
         socs: list[float] = []
@@ -194,20 +210,29 @@ class MqttLiveWindow(Ui_MainWindow):
         self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
 
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
-        topic: str = msg.topic[msg.topic.find('/') + 1:]
-        identifier: str = topic[:topic.find('/')]
-        self.main_window.signal.emit({'func': self.add_widget, 'arg': identifier})
-        topic = topic[topic.find('/') + 1:]
-        # print(identifier, topic)
-        if topic in Module.TOPICS:
-            self.emit_signal_set_module(identifier, topic, msg)
-        elif topic.startswith('cell/'):
+        if msg.topic.startswith('esp-module'):
+            topic: str = msg.topic[msg.topic.find('/') + 1:]
+            identifier: str = topic[:topic.find('/')]
+            self.main_window.signal.emit({'func': self.add_widget, 'arg': identifier})
             topic = topic[topic.find('/') + 1:]
-            number = topic[:topic.find('/')]
-            topic = topic[topic.find('/') + 1:]
-            number = int(number)
-            if topic in self.CELL_TOPICS:
-                self.emit_signal_set_cell(identifier, number, topic, msg)
+            # print(identifier, topic)
+            if topic in Module.TOPICS:
+                self.emit_signal_set_module(identifier, topic, msg)
+            elif topic.startswith('cell/'):
+                topic = topic[topic.find('/') + 1:]
+                number = topic[:topic.find('/')]
+                topic = topic[topic.find('/') + 1:]
+                number = int(number)
+                if topic in self.CELL_TOPICS:
+                    self.emit_signal_set_cell(identifier, number, topic, msg)
+        elif msg.topic == 'esp-total/total_voltage':
+            self.main_window.signal.emit({'func': self.set_total, 'arg': {
+                'total_voltage': msg.payload.decode()
+            }})
+        elif msg.topic == 'esp-total/total_current':
+            self.main_window.signal.emit({'func': self.set_total, 'arg': {
+                'total_current': msg.payload.decode()
+            }})
 
 
 if __name__ == '__main__':
