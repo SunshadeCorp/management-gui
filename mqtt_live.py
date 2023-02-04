@@ -67,10 +67,11 @@ class MqttLiveWindow(Ui_MainWindow):
             self.modules[identifier].widget.setParent(None)
         self.row = 0
         self.column = 0
-        for identifier in sorted(self.modules):
-            if self.modules[identifier].hidden and not self.show_hidden:
-                continue
-            self.add_widget_to_grid(self.modules[identifier].widget)
+        if len(self.modules) > 1:
+            for identifier in sorted(self.modules):
+                if self.modules[identifier].hidden and not self.show_hidden:
+                    continue
+                self.add_widget_to_grid(self.modules[identifier].widget)
         QtCore.QTimer.singleShot(100, self.resize_window)
 
     @staticmethod
