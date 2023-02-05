@@ -70,15 +70,15 @@ class MqttLiveWindow(Ui_MainWindow):
                 self.modules[identifier].restart()
 
     def sort_modules(self):
-        for identifier in self.modules:
-            self.modules[identifier].widget.setParent(None)
+        if len(self.modules) > 1:
+            for identifier in self.modules:
+                self.modules[identifier].widget.setParent(None)
         self.row = 0
         self.column = 0
-        if len(self.modules) > 1:
-            for identifier in sorted(self.modules):
-                if self.modules[identifier].hidden and not self.show_hidden:
-                    continue
-                self.add_widget_to_grid(self.modules[identifier].widget)
+        for identifier in sorted(self.modules):
+            if self.modules[identifier].hidden and not self.show_hidden:
+                continue
+            self.add_widget_to_grid(self.modules[identifier].widget)
         QtCore.QTimer.singleShot(100, self.resize_window)
 
     @staticmethod
@@ -117,8 +117,8 @@ class MqttLiveWindow(Ui_MainWindow):
                                      if not self.modules[identifier].hidden)
         cell_sum_voltage: float = sum(self.modules[identifier].cell_sum_voltage for identifier in self.modules
                                       if not self.modules[identifier].hidden)
-        self.main_window.statusBar().showMessage(f'{self.total_system_voltage} V'
-                                                 f', {self.total_system_current} A'
+        self.main_window.statusBar().showMessage(f'{self.total_system_voltage:.2f} V'
+                                                 f', {self.total_system_current:.2f} A'
                                                  f', {self.total_system_voltage * self.total_system_current:.2f} W'
                                                  f', {mod_sum_voltage:.2f} V'
                                                  f', {cell_sum_voltage:.2f} V')
@@ -240,10 +240,10 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     settings_dialog = SettingsDialog({
-        'host': '',
+        'host': '127.0.0.1',
         'username': '',
         'password': '',
-        'max_columns': 4,
+        'max_columns': 6,
         'show_hidden': 0,
         'hide_modules': 'none',
     }, 'mqtt_live.yaml')
