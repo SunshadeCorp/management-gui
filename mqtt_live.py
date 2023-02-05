@@ -27,6 +27,7 @@ class MqttLiveWindow(Ui_MainWindow):
 
         self.max_columns: int = int(parameters.get('max_columns', 4))
         self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
+        self.auto_resize: bool = bool(int(parameters.get('auto_resize', 0)) == 1)
 
         self.hide_modules: set[str] = set()
         hide_modules = parameters.get('hide_modules', 'none')
@@ -51,10 +52,8 @@ class MqttLiveWindow(Ui_MainWindow):
 
         self.mqtt_client.loop_start()
 
-        QtCore.QTimer.singleShot(100, self.resize_window)
-
         timer = QtCore.QTimer(self.main_window)
-        timer.timeout.connect(self.calc_cell_diff)
+        timer.timeout.connect(self.timer_work)
         timer.start(1000)
 
     def show(self):
@@ -70,16 +69,18 @@ class MqttLiveWindow(Ui_MainWindow):
                 self.modules[identifier].restart()
 
     def sort_modules(self):
-        if len(self.modules) > 1:
-            for identifier in self.modules:
-                self.modules[identifier].widget.setParent(None)
+        for identifier in self.modules:
+            self.modules[identifier].widget.hide()
+            self.modules[identifier].widget.setParent(None)
         self.row = 0
         self.column = 0
         for identifier in sorted(self.modules):
             if self.modules[identifier].hidden and not self.show_hidden:
                 continue
             self.add_widget_to_grid(self.modules[identifier].widget)
-        QtCore.QTimer.singleShot(100, self.resize_window)
+            self.modules[identifier].widget.show()
+        if self.auto_resize:
+            self.resize_window()
 
     @staticmethod
     def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
@@ -110,7 +111,7 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def set_module_hidden(self, module: Module, value: bool):
         module.hidden = True if module.identifier in self.hide_modules else value
-        QtCore.QTimer.singleShot(200, self.sort_modules)
+        self.sort_modules()
 
     def print_status_bar(self):
         mod_sum_voltage: float = sum(self.modules[identifier].module_voltage for identifier in self.modules
@@ -142,11 +143,11 @@ class MqttLiveWindow(Ui_MainWindow):
             self.total_system_current = float(data['total_system_current'].split(',')[1]) * -1.0
             self.print_status_bar()
         elif 'chip_temp' in data:
-            module.set_chip_temp(data['chip_temp'])
+            module.update_chip_temp(data['chip_temp'])
         elif 'module_temps' in data:
             module.module_temps.setText(data['module_temps'])
         elif 'module_voltage' in data:
-            module.set_voltage(data['module_voltage'])
+            module.update_voltage(data['module_voltage'])
         elif 'voltage' in data:
             module.update_cell_voltage(data['number'], float(data['voltage']))
             module.color_median_voltage(self.cell_min + 0.01)
@@ -155,6 +156,10 @@ class MqttLiveWindow(Ui_MainWindow):
             cell.is_balancing = bool(int(data['is_balancing']))
             balancing_text = ' (+)' if cell.is_balancing else ''
             cell.label.setText(f"{data['number']}: {cell.get_voltage():.3f}{balancing_text}")
+        elif 'uptime' in data:
+            module.update_uptime(int(data['uptime']))
+        elif 'pec15_error_count' in data:
+            module.update_pec15(int(data['pec15_error_count']))
 
     def set_total(self, data: dict):
         if 'total_voltage' in data:
@@ -163,6 +168,11 @@ class MqttLiveWindow(Ui_MainWindow):
         elif 'total_current' in data:
             self.total_system_current = float(data['total_current']) * -1.0
             self.print_status_bar()
+
+    def timer_work(self):
+        self.calc_cell_diff()
+        for identifier in self.modules:
+            self.modules[identifier].check_uptime()
 
     def calc_cell_diff(self):
         voltages: list[float] = []
@@ -175,6 +185,8 @@ class MqttLiveWindow(Ui_MainWindow):
                 if cell.voltage is not None:
                     voltages.append(cell.voltage)
                     socs.append(cell.get_soc())
+        if len(voltages) < 1:
+            return
         self.cell_min: float = min(voltages)
         cell_max: float = max(voltages)
         cell_diff: float = (cell_max - self.cell_min) * 1000
@@ -246,6 +258,7 @@ if __name__ == '__main__':
         'max_columns': 6,
         'show_hidden': 0,
         'hide_modules': 'none',
+        'auto_resize': 1
     }, 'mqtt_live.yaml')
     if settings_dialog.result == 1:
         main_window = MqttLiveWindow(settings_dialog.configuration)

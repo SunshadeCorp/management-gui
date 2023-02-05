@@ -1,4 +1,5 @@
 import statistics
+import time
 
 import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets
@@ -15,8 +16,10 @@ class Module:
         'module_temps',
         'module_topic',
         'module_voltage',
+        'pec15_error_count',
         'total_system_current',
-        'total_system_voltage'
+        'total_system_voltage',
+        'uptime'
     ]
 
     def __init__(self, identifier: str, parent: QtWidgets.QWidget, grid_layout: QtWidgets.QGridLayout,
@@ -31,6 +34,9 @@ class Module:
         self.module_voltage: float = 0.0
         self.cell_median_voltage: float = 0.0
         self.cell_sum_voltage: float = 0.0
+        self.uptime: int = 0
+        self.last_uptime: float = time.time()
+        self.pec15: int = 0
 
         self.widget: ModuleWidget = ModuleWidget(parent)
         self.widget.setObjectName("Form")
@@ -62,6 +68,12 @@ class Module:
         self.module_voltage_label = QtWidgets.QLabel(self.widget)
         self.module_voltage_label.setText('-')
         self.layout.addWidget(self.module_voltage_label)
+        self.uptime_label = QtWidgets.QLabel(self.widget)
+        self.uptime_label.setText('-')
+        self.layout.addWidget(self.uptime_label)
+        self.pec15_label = QtWidgets.QLabel(self.widget)
+        self.pec15_label.setText('-')
+        self.layout.addWidget(self.pec15_label)
 
     def is_mac(self) -> bool:
         return len(self.identifier) == 12
@@ -139,7 +151,7 @@ class Module:
         else:
             self.header.setStyleSheet('')
 
-    def set_chip_temp(self, value: str):
+    def update_chip_temp(self, value: str):
         chip_temp: float = float(value)
         self.chip_temp.setText(f'{chip_temp:.2f} °C')
         if chip_temp >= 60.0:
@@ -149,7 +161,7 @@ class Module:
         else:
             self.chip_temp.setStyleSheet('')
 
-    def set_voltage(self, value: str):
+    def update_voltage(self, value: str):
         self.module_voltage: float = float(value)
         self.cell_sum_voltage: float = self.calc_voltage()
         diff: float = abs(self.module_voltage - self.cell_sum_voltage)
@@ -164,3 +176,17 @@ class Module:
         else:
             self.module_voltage_label.setStyleSheet('')
         self.module_voltage_label.setText(f"{self.module_voltage:.2f}, {self.cell_sum_voltage:.3f}, {diff:.3f}")
+
+    def update_uptime(self, uptime: int):
+        self.uptime = uptime
+        self.last_uptime = time.time()
+        self.uptime_label.setText(f'{self.uptime}')
+
+    def update_pec15(self, pec15: int):
+        self.pec15 = pec15
+        self.pec15_label.setText(f'pec15: {self.pec15}')
+
+    def check_uptime(self):
+        if self.available == 'online':
+            if time.time() - self.last_uptime > 3:
+                self.widget.setStyleSheet('background-color: #ff8c1a;')
