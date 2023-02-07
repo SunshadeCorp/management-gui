@@ -172,12 +172,13 @@ class MqttLiveWindow(Ui_MainWindow):
             self.print_status_bar()
 
     def timer_work(self):
-        self.calc_cell_diff()
-        for identifier in self.modules:
-            self.modules[identifier].check_uptime()
         if not self.mqtt_client.is_connected():
             self.main_window.setWindowTitle("DISCONNECTED!")
             self.mqtt_client.connect_async(host=self.mqtt_host, port=1883, keepalive=60)
+            return
+        self.calc_cell_diff()
+        for identifier in self.modules:
+            self.modules[identifier].check_uptime()
 
     def calc_cell_diff(self):
         voltages: list[float] = []
