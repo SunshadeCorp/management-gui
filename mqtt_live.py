@@ -44,11 +44,12 @@ class MqttLiveWindow(Ui_MainWindow):
         self.total_system_current: float = 0
         self.cell_min: float = 0
 
+        self.mqtt_host = parameters['host']
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_message = self.mqtt_on_message
         self.mqtt_client.username_pw_set(parameters['username'], parameters['password'])
-        self.mqtt_client.connect(host=parameters['host'], port=1883, keepalive=60)
+        self.mqtt_client.connect_async(host=self.mqtt_host, port=1883, keepalive=60)
 
         self.mqtt_client.loop_start()
 
@@ -59,6 +60,7 @@ class MqttLiveWindow(Ui_MainWindow):
     def show(self):
         self.main_window.show()
         self.app.exec_()
+        self.mqtt_client.loop_stop()
 
     def resize_window(self):
         self.main_window.resize(0, 0)
@@ -173,6 +175,9 @@ class MqttLiveWindow(Ui_MainWindow):
         self.calc_cell_diff()
         for identifier in self.modules:
             self.modules[identifier].check_uptime()
+        if not self.mqtt_client.is_connected():
+            self.main_window.setWindowTitle("DISCONNECTED!")
+            self.mqtt_client.connect_async(host=self.mqtt_host, port=1883, keepalive=60)
 
     def calc_cell_diff(self):
         voltages: list[float] = []
