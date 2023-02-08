@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QComboBox
+from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QComboBox, QWidget
 
 from ui.settings import Ui_Dialog
 from utils import save_config_local, get_config_local
@@ -26,29 +26,32 @@ class SettingsDialog(Ui_Dialog):
                 self.save_file = save_file
                 self.configuration = copy.deepcopy(self.save_file[self.save_file['last_used']])
 
-        self.line_edits: dict[str, QLineEdit] = {}
+        self.widgets: dict[str, QWidget] = {}
 
         spacer = self.gridLayout.itemAtPosition(0, 0)
         self.gridLayout.removeItem(spacer)
         self.gridLayout.removeWidget(self.buttonBox)
-        self.combo_box = QComboBox()
-        for save in self.save_file:
-            if save != 'last_used':
-                self.combo_box.addItem(save)
-        self.combo_box.setCurrentText(self.save_file['last_used'])
-        self.combo_box.currentTextChanged['QString'].connect(self.combo_box_changed)
-        self.gridLayout.addWidget(self.combo_box, 0, 0, 1, 2)
+        if len(config_file) > 0:
+            self.combo_box = QComboBox()
+            for save in self.save_file:
+                if save != 'last_used':
+                    self.combo_box.addItem(save)
+            self.combo_box.setCurrentText(self.save_file['last_used'])
+            self.combo_box.currentTextChanged['QString'].connect(self.combo_box_changed)
+            self.gridLayout.addWidget(self.combo_box, 0, 0, 1, 2)
         for i, key in enumerate(self.defaults):
             self.gridLayout.addWidget(QLabel(f'{key}:'), i + 1, 0)
-            self.line_edits[key] = QLineEdit(str(self.configuration.get(key, self.defaults[key])))
-            self.gridLayout.addWidget(self.line_edits[key], i + 1, 1)
+            self.widgets[key] = QLineEdit(str(self.configuration.get(key, self.defaults[key])))
+            self.gridLayout.addWidget(self.widgets[key], i + 1, 1)
         self.gridLayout.addItem(spacer, len(self.configuration) + 1, 0, 1, 2)
         self.gridLayout.addWidget(self.buttonBox, len(self.configuration) + 2, 0, 1, 2)
 
         self.result = self.dialog.exec_()
         if self.result == 1:
-            for key in self.line_edits:
-                self.configuration[key] = self.line_edits[key].text()
+            for key in self.widgets:
+                widget: QWidget = self.widgets[key]
+                if isinstance(widget, QLineEdit):
+                    self.configuration[key] = widget.text()
             if len(config_file) > 0:
                 h = hashlib.new('sha1')
                 h.update(yaml.dump(self.configuration, default_flow_style=False, sort_keys=True).encode())
@@ -62,8 +65,10 @@ class SettingsDialog(Ui_Dialog):
 
     def combo_box_changed(self, value: str):
         self.configuration = copy.deepcopy(self.save_file[value])
-        for key in self.line_edits:
-            self.line_edits[key].setText(str(self.configuration.get(key, self.defaults[key])))
+        for key in self.widgets:
+            widget: QWidget = self.widgets[key]
+            if isinstance(widget, QLineEdit):
+                widget.setText(str(self.configuration.get(key, self.defaults[key])))
 
 
 if __name__ == '__main__':

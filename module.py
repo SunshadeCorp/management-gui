@@ -181,6 +181,8 @@ class Module:
         self.uptime = uptime
         self.last_uptime = time.time()
         self.uptime_label.setText(f'{self.uptime}')
+        if self.available == 'online':
+            self.widget.setStyleSheet('')
 
     def update_pec15(self, pec15: int):
         self.pec15 = pec15
