@@ -112,7 +112,7 @@ class Module:
         elif value == 'offline':
             self.widget.setStyleSheet('background-color: grey;')
         elif value == 'undefined':
-            self.widget.setStyleSheet('background-color: #cccccc;')
+            self.widget.setStyleSheet('background-color: #cccccc; color: #404040;')
         return True
 
     def refresh_cell_text(self, number: int):
