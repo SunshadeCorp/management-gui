@@ -110,9 +110,9 @@ class Module:
             self.widget.setStyleSheet('')
             return False
         elif value == 'offline':
-            self.widget.setStyleSheet('background-color: grey;')
+            self.widget.setStyleSheet('background-color: grey; color: #202124;')
         elif value == 'undefined':
-            self.widget.setStyleSheet('background-color: #cccccc; color: #404040;')
+            self.widget.setStyleSheet('background-color: #cccccc; color: #202124;')
         return True
 
     def refresh_cell_text(self, number: int):
@@ -130,15 +130,15 @@ class Module:
             current_cell = self.cells[cell_number]
             if current_cell.voltage is not None:
                 if current_cell.voltage - self.cell_median_voltage >= 0.01:
-                    current_cell.label.setStyleSheet('background-color: #ff5c33;')
+                    current_cell.label.setStyleSheet('background-color: #ff5c33; color: #202124;')
                 elif current_cell.voltage - self.cell_median_voltage <= -0.01:
-                    current_cell.label.setStyleSheet('background-color: #3399ff;')
+                    current_cell.label.setStyleSheet('background-color: #3399ff; color: #202124;')
                 else:
                     current_cell.label.setStyleSheet('')
 
     def color_median_voltage(self, min_voltage: float):
         if self.cell_median_voltage > min_voltage:
-            self.header.setStyleSheet('background-color: #ff5c33;')
+            self.header.setStyleSheet('background-color: #ff5c33; color: #202124;')
         else:
             self.header.setStyleSheet('')
 
@@ -146,9 +146,9 @@ class Module:
         chip_temp: float = float(value)
         self.chip_temp.setText(f'{chip_temp:.2f} °C')
         if chip_temp >= 60.0:
-            self.chip_temp.setStyleSheet('background-color: #ffb366;')
+            self.chip_temp.setStyleSheet('background-color: #ffb366; color: #202124;')
         elif chip_temp >= 50.0:
-            self.chip_temp.setStyleSheet('background-color: #ffff80; color: #404040;')
+            self.chip_temp.setStyleSheet('background-color: #ffff80; color: #202124;')
         else:
             self.chip_temp.setStyleSheet('')
 
@@ -157,13 +157,13 @@ class Module:
         self.cell_sum_voltage: float = self.calc_voltage()
         diff: float = abs(self.module_voltage - self.cell_sum_voltage)
         if diff > 0.1:
-            self.module_voltage_label.setStyleSheet('background-color: #ff3300;')
+            self.module_voltage_label.setStyleSheet('background-color: #ff3300; color: #202124;')
         elif diff > 0.05:
-            self.module_voltage_label.setStyleSheet('background-color: #ff8566;')
+            self.module_voltage_label.setStyleSheet('background-color: #ff8566; color: #202124;')
         elif diff > 0.02:
-            self.module_voltage_label.setStyleSheet('background-color: #ffb366;')
+            self.module_voltage_label.setStyleSheet('background-color: #ffb366; color: #202124;')
         elif diff > 0.01:
-            self.module_voltage_label.setStyleSheet('background-color: #ffff80; color: #404040;')
+            self.module_voltage_label.setStyleSheet('background-color: #ffff80; color: #202124;')
         else:
             self.module_voltage_label.setStyleSheet('')
         self.module_voltage_label.setText(f"{self.module_voltage:.2f}, {self.cell_sum_voltage:.3f}, {diff:.3f}")
@@ -181,4 +181,4 @@ class Module:
     def check_uptime(self):
         if self.available == 'online':
             if time.time() - self.last_uptime > 3:
-                self.widget.setStyleSheet('background-color: #ff8c1a;')
+                self.widget.setStyleSheet('background-color: #ff8c1a; color: #202124;')
