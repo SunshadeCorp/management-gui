@@ -148,7 +148,7 @@ class Module:
         if chip_temp >= 60.0:
             self.chip_temp.setStyleSheet('background-color: #ffb366;')
         elif chip_temp >= 50.0:
-            self.chip_temp.setStyleSheet('background-color: #ffff80;')
+            self.chip_temp.setStyleSheet('background-color: #ffff80; color: #404040;')
         else:
             self.chip_temp.setStyleSheet('')
 
@@ -163,7 +163,7 @@ class Module:
         elif diff > 0.02:
             self.module_voltage_label.setStyleSheet('background-color: #ffb366;')
         elif diff > 0.01:
-            self.module_voltage_label.setStyleSheet('background-color: #ffff80;')
+            self.module_voltage_label.setStyleSheet('background-color: #ffff80; color: #404040;')
         else:
             self.module_voltage_label.setStyleSheet('')
         self.module_voltage_label.setText(f"{self.module_voltage:.2f}, {self.cell_sum_voltage:.3f}, {diff:.3f}")

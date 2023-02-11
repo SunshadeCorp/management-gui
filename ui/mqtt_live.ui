@@ -51,6 +51,7 @@
     <addaction name="actionbuild_timestamp"/>
     <addaction name="separator"/>
     <addaction name="actionauto_resize"/>
+    <addaction name="actiondark_mode"/>
    </widget>
    <addaction name="menuactions"/>
    <addaction name="menuwindow"/>
@@ -125,6 +126,17 @@
    </property>
    <property name="text">
     <string>balancing_enabled</string>
+   </property>
+  </action>
+  <action name="actiondark_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>dark_mode</string>
    </property>
   </action>
  </widget>

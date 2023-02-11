@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
+import qdarktheme
 from PyQt5 import QtWidgets, QtCore
 from fabric import Connection
 
@@ -32,10 +33,12 @@ class MqttLiveWindow(Ui_MainWindow):
         self.actiondelete_offline.triggered.connect(self.delete_offline)
         self.actiondelete_no_slave_mapping.triggered.connect(self.delete_no_slave_mapping)
         self.actionota_update_all.triggered.connect(self.ota_update_all)
+
         self.actionhidden.triggered.connect(self.show_hidden_clicked)
-        self.actionauto_resize.triggered.connect(self.auto_resize_clicked)
         self.actionuptime.triggered.connect(self.update_modules)
         self.actionbuild_timestamp.triggered.connect(self.update_modules)
+        self.actionauto_resize.triggered.connect(self.auto_resize_clicked)
+        self.actiondark_mode.triggered.connect(self.switch_dark_mode)
 
         self.max_columns: int = int(parameters.get('max_columns', 4))
         self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
@@ -132,6 +135,9 @@ class MqttLiveWindow(Ui_MainWindow):
     def auto_resize_clicked(self):
         self.auto_resize = not self.auto_resize
         self.sort_modules()
+
+    def switch_dark_mode(self):
+        qdarktheme.setup_theme("dark" if self.actiondark_mode.isChecked() else "light")
 
     def update_modules(self):
         for identifier in self.modules:
@@ -363,6 +369,7 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QtWidgets.QApplication(sys.argv)
+    qdarktheme.setup_theme("dark")
     settings_dialog = SettingsDialog({
         'host': '127.0.0.1',
         'username': '',
