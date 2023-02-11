@@ -29,14 +29,102 @@
     <property name="title">
      <string>actions</string>
     </property>
+    <addaction name="actionread_accurate_all"/>
+    <addaction name="actionbalancing_enabled"/>
     <addaction name="actionrestart_all"/>
+    <addaction name="actiondelete_offline"/>
+    <addaction name="actiondelete_no_slave_mapping"/>
+    <addaction name="actionota_update_all"/>
+   </widget>
+   <widget class="QMenu" name="menuwindow">
+    <property name="title">
+     <string>window</string>
+    </property>
+    <addaction name="actionmaster_info"/>
+   </widget>
+   <widget class="QMenu" name="menushow">
+    <property name="title">
+     <string>show</string>
+    </property>
+    <addaction name="actionhidden"/>
+    <addaction name="actionuptime"/>
+    <addaction name="actionbuild_timestamp"/>
+    <addaction name="separator"/>
+    <addaction name="actionauto_resize"/>
    </widget>
    <addaction name="menuactions"/>
+   <addaction name="menuwindow"/>
+   <addaction name="menushow"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionrestart_all">
    <property name="text">
-    <string>restart all</string>
+    <string>restart_all</string>
+   </property>
+  </action>
+  <action name="actionmaster_info">
+   <property name="text">
+    <string>master_info</string>
+   </property>
+  </action>
+  <action name="actionhidden">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>hidden</string>
+   </property>
+  </action>
+  <action name="actionauto_resize">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>auto_resize</string>
+   </property>
+  </action>
+  <action name="actionuptime">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>uptime</string>
+   </property>
+  </action>
+  <action name="actionbuild_timestamp">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>build_timestamp</string>
+   </property>
+  </action>
+  <action name="actiondelete_offline">
+   <property name="text">
+    <string>delete_offline</string>
+   </property>
+  </action>
+  <action name="actiondelete_no_slave_mapping">
+   <property name="text">
+    <string>delete_no_slave_mapping</string>
+   </property>
+  </action>
+  <action name="actionota_update_all">
+   <property name="text">
+    <string>ota_update_all</string>
+   </property>
+  </action>
+  <action name="actionread_accurate_all">
+   <property name="text">
+    <string>read_accurate_all</string>
+   </property>
+  </action>
+  <action name="actionbalancing_enabled">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>balancing_enabled</string>
    </property>
   </action>
  </widget>

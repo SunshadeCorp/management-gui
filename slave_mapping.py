@@ -8,7 +8,7 @@ class SlaveMapping(ConfigReader):
         super().__init__(config, 'slave_mapping')
 
     def get_info(self):
-        self.store = self.get_yaml_file('/docker/build/easybms-master/slave_mapping.yaml')
+        self.store = self.get_yaml_file('/docker/easybms-master/slave_mapping.yaml')
 
     def show_info(self):
         headers = ['Number', 'Mac', 'Assignments']

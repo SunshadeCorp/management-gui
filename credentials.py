@@ -9,11 +9,11 @@ class Credentials(ConfigReader):
 
     def get_info(self):
         self.signal.emit({'func': self.status_bar.showMessage, 'arg': 'can..'})
-        can = self.get_yaml_file('/docker/build/can-service/credentials.yaml')
+        can = self.get_yaml_file('/docker/can-service/credentials.yaml')
         if can is None:
             return
         self.signal.emit({'func': self.status_bar.showMessage, 'arg': 'master..'})
-        master = self.get_yaml_file('/docker/build/easybms-master/credentials.yaml')
+        master = self.get_yaml_file('/docker/easybms-master/credentials.yaml')
         self.signal.emit({'func': self.status_bar.showMessage, 'arg': 'relay..'})
         relay = self.get_yaml_file('/docker/build/relay-service/credentials.yaml')
         env = self.get_config_file('/docker/.env')

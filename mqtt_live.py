@@ -1,15 +1,18 @@
 import os
 import statistics
 import sys
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 from PyQt5 import QtWidgets, QtCore
+from fabric import Connection
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
 from module import Module
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
+from utils import get_config_local, get_yaml_file
 
 
 class MqttLiveWindow(Ui_MainWindow):
@@ -23,11 +26,22 @@ class MqttLiveWindow(Ui_MainWindow):
         self.main_window = CustomSignalWindow()
         self.setupUi(self.main_window)
 
+        self.actionread_accurate_all.triggered.connect(self.read_accurate_all)
+        self.actionbalancing_enabled.triggered.connect(self.switch_balancing_enabled)
         self.actionrestart_all.triggered.connect(self.restart_all)
+        self.actiondelete_offline.triggered.connect(self.delete_offline)
+        self.actiondelete_no_slave_mapping.triggered.connect(self.delete_no_slave_mapping)
+        self.actionota_update_all.triggered.connect(self.ota_update_all)
+        self.actionhidden.triggered.connect(self.show_hidden_clicked)
+        self.actionauto_resize.triggered.connect(self.auto_resize_clicked)
+        self.actionuptime.triggered.connect(self.update_modules)
+        self.actionbuild_timestamp.triggered.connect(self.update_modules)
 
         self.max_columns: int = int(parameters.get('max_columns', 4))
         self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
         self.auto_resize: bool = bool(int(parameters.get('auto_resize', 0)) == 1)
+        self.actionhidden.setChecked(self.show_hidden)
+        self.actionauto_resize.setChecked(self.auto_resize)
 
         self.hide_modules: set[str] = set()
         hide_modules = parameters.get('hide_modules', 'none')
@@ -62,6 +76,69 @@ class MqttLiveWindow(Ui_MainWindow):
         self.app.exec_()
         self.mqtt_client.loop_stop()
 
+    def read_accurate_all(self):
+        for identifier in self.modules:
+            self.mqtt_client.publish(f'esp-module/{identifier}/read_accurate', payload='1')
+
+    def switch_balancing_enabled(self):
+        value: str = str(self.actionbalancing_enabled.isChecked()).lower()
+        self.mqtt_client.publish('master/core/config/balancing_enabled/set', payload=value, retain=True)
+
+    def delete_module(self, identifier: str):
+        topics = [
+            'available',
+            'chip_temp',
+            'module_temps',
+            'module_topic',
+            'module_voltage',
+            'pec15_error_count',
+            'total_system_voltage',
+            'uptime',
+        ]
+        for i in range(1, 13):
+            for cell_topic in self.CELL_TOPICS:
+                topics.append(f'cell/{i}/{cell_topic}')
+        for topic in topics:
+            self.mqtt_client.publish(f'esp-module/{identifier}/{topic}', retain=True)
+
+    def delete_offline(self):
+        for identifier in self.modules:
+            if self.modules[identifier].available == 'offline':
+                self.delete_module(identifier)
+
+    def delete_no_slave_mapping(self):
+        config: dict = get_config_local(Path('config.yaml'))
+        if 'error' in config:
+            print(config)
+            return
+        c = Connection(host=config['host'], user=config['user'], connect_kwargs={'password': config['password']})
+        file = get_yaml_file(c, '/docker/easybms-master/slave_mapping.yaml')
+        for identifier in self.modules:
+            if len(identifier) != 12:
+                continue
+            if identifier not in file['slaves']:
+                self.delete_module(identifier)
+
+    def ota_update_all(self):
+        for identifier in self.modules:
+            if len(identifier) != 12:
+                continue
+            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.16.bin')
+
+    def show_hidden_clicked(self):
+        self.show_hidden = not self.show_hidden
+        self.sort_modules()
+
+    def auto_resize_clicked(self):
+        self.auto_resize = not self.auto_resize
+        self.sort_modules()
+
+    def update_modules(self):
+        for identifier in self.modules:
+            self.update_all_labels(self.modules[identifier])
+        if self.auto_resize:
+            QtCore.QTimer.singleShot(100, self.resize_window)
+
     def resize_window(self):
         self.main_window.resize(0, 0)
 
@@ -88,10 +165,23 @@ class MqttLiveWindow(Ui_MainWindow):
     def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
         client.subscribe('esp-module/#')
         client.subscribe('esp-total/#')
+        client.subscribe('master/core/config/balancing_enabled')
+
+    @staticmethod
+    def update_label_visibility(action: QtWidgets.QAction, label: QtWidgets.QLabel):
+        if action.isChecked():
+            label.show()
+        else:
+            label.hide()
+
+    def update_all_labels(self, module: Module):
+        self.update_label_visibility(self.actionuptime, module.uptime_label)
+        self.update_label_visibility(self.actionbuild_timestamp, module.build_timestamp_label)
 
     def add_widget(self, identifier: str):
         if identifier not in self.modules:
             module = Module(identifier, self.centralwidget, self.gridLayout, self.mqtt_client)
+            self.update_all_labels(module)
             self.add_widget_to_grid(module.widget)
             self.modules[identifier] = module
 
@@ -153,15 +243,19 @@ class MqttLiveWindow(Ui_MainWindow):
         elif 'voltage' in data:
             module.update_cell_voltage(data['number'], float(data['voltage']))
             module.color_median_voltage(self.cell_min + 0.01)
+        elif 'accurate_voltage' in data:
+            module.cells[data['number']].accurate_voltage = float(data['accurate_voltage'])
+            module.refresh_cell_text(data['number'])
         elif 'is_balancing' in data:
             cell: Cell = module.cells[data['number']]
             cell.is_balancing = bool(int(data['is_balancing']))
-            balancing_text = ' (+)' if cell.is_balancing else ''
-            cell.label.setText(f"{data['number']}: {cell.get_voltage():.3f}{balancing_text}")
+            module.refresh_cell_text(data['number'])
         elif 'uptime' in data:
             module.update_uptime(int(data['uptime']))
         elif 'pec15_error_count' in data:
             module.update_pec15(int(data['pec15_error_count']))
+        elif 'build_timestamp' in data:
+            module.build_timestamp_label.setText(data['build_timestamp'])
 
     def set_total(self, data: dict):
         if 'total_voltage' in data:
@@ -228,6 +322,8 @@ class MqttLiveWindow(Ui_MainWindow):
         self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
 
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
+        if len(msg.payload) < 1:
+            return
         if msg.topic.startswith('esp-module'):
             topic: str = msg.topic[msg.topic.find('/') + 1:]
             identifier: str = topic[:topic.find('/')]
@@ -243,6 +339,14 @@ class MqttLiveWindow(Ui_MainWindow):
                 number = int(number)
                 if topic in self.CELL_TOPICS:
                     self.emit_signal_set_cell(identifier, number, topic, msg)
+            elif topic.startswith('accurate/cell/'):
+                topic = topic[topic.find('/') + 1:]
+                topic = topic[topic.find('/') + 1:]
+                number = topic[:topic.find('/')]
+                topic = topic[topic.find('/') + 1:]
+                number = int(number)
+                if topic in self.CELL_TOPICS:
+                    self.emit_signal_set_cell(identifier, number, f'accurate_{topic}', msg)
         elif msg.topic == 'esp-total/total_voltage':
             self.main_window.signal.emit({'func': self.set_total, 'arg': {
                 'total_voltage': msg.payload.decode()
@@ -251,6 +355,8 @@ class MqttLiveWindow(Ui_MainWindow):
             self.main_window.signal.emit({'func': self.set_total, 'arg': {
                 'total_current': msg.payload.decode()
             }})
+        elif msg.topic == 'master/core/config/balancing_enabled':
+            self.actionbalancing_enabled.setChecked(msg.payload.decode().lower() == 'true')
 
 
 if __name__ == '__main__':

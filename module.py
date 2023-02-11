@@ -12,6 +12,7 @@ from utils_qt import exchange_widget_positions
 class Module:
     TOPICS: list = [
         'available',
+        'build_timestamp',
         'chip_temp',
         'module_temps',
         'module_topic',
@@ -36,44 +37,30 @@ class Module:
         self.cell_sum_voltage: float = 0.0
         self.uptime: int = 0
         self.last_uptime: float = time.time()
-        self.pec15: int = 0
 
         self.widget: ModuleWidget = ModuleWidget(parent)
-        self.widget.setObjectName("Form")
         self.widget.on_drop.connect(self.module_dragged)
         self.widget.on_drag_start.connect(self.drag_start)
-        # module_widget.resize(100, 100)
         self.layout = QtWidgets.QVBoxLayout(self.widget)
-        self.layout.setObjectName("verticalLayout")
-        self.header: QtWidgets.QLabel = QtWidgets.QLabel(self.widget)
-        self.header.setObjectName("label")
-        self.header.setText(identifier)
+        self.header: QtWidgets.QLabel = QtWidgets.QLabel(identifier, self.widget)
         font = self.header.font()
         font.setBold(True)
         self.header.setFont(font)
         self.layout.addWidget(self.header)
-        self.module_temps: QtWidgets.QLabel = QtWidgets.QLabel(self.widget)
-        self.module_temps.setText('-,-')
-        self.layout.addWidget(self.module_temps)
-        self.chip_temp = QtWidgets.QLabel(self.widget)
-        self.chip_temp.setText('-')
-        self.layout.addWidget(self.chip_temp)
+        self.module_temps: QtWidgets.QLabel = self.add_label('-,-')
+        self.chip_temp = self.add_label('-')
         self.cells: dict[int, Cell] = {}
         for i in range(1, 13):
-            cell_label = QtWidgets.QLabel(self.widget)
-            cell_label.setObjectName("label")
-            cell_label.setText(f'{i}:')
-            self.layout.addWidget(cell_label)
-            self.cells[i] = Cell(cell_label)
-        self.module_voltage_label = QtWidgets.QLabel(self.widget)
-        self.module_voltage_label.setText('-')
-        self.layout.addWidget(self.module_voltage_label)
-        self.uptime_label = QtWidgets.QLabel(self.widget)
-        self.uptime_label.setText('-')
-        self.layout.addWidget(self.uptime_label)
-        self.pec15_label = QtWidgets.QLabel(self.widget)
-        self.pec15_label.setText('-')
-        self.layout.addWidget(self.pec15_label)
+            self.cells[i] = Cell(self.add_label(f'{i}:'))
+        self.module_voltage_label = self.add_label('-')
+        self.uptime_label = self.add_label('-')
+        self.pec15_label = self.add_label('-')
+        self.build_timestamp_label = self.add_label('-')
+
+    def add_label(self, text: str) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(text, self.widget)
+        self.layout.addWidget(label)
+        return label
 
     def is_mac(self) -> bool:
         return len(self.identifier) == 12
@@ -128,11 +115,15 @@ class Module:
             self.widget.setStyleSheet('background-color: #cccccc;')
         return True
 
-    def update_cell_voltage(self, number: int, voltage: float):
+    def refresh_cell_text(self, number: int):
         cell: Cell = self.cells[number]
-        cell.voltage = voltage
         balancing_text = ' (+)' if cell.is_balancing else ''
-        cell.label.setText(f"{number}: {voltage}{balancing_text}")
+        accurate_text = f' [{cell.accurate_voltage:.3f}]' if cell.accurate_voltage is not None else ''
+        cell.label.setText(f"{number}: {cell.voltage:.3f}{accurate_text}{balancing_text}")
+
+    def update_cell_voltage(self, number: int, voltage: float):
+        self.cells[number].voltage = voltage
+        self.refresh_cell_text(number)
         self.cell_median_voltage: float = self.get_median_voltage()
         self.header.setText(f'{self.get_title()}: {self.cell_median_voltage:.3f}')
         for cell_number in self.cells:
@@ -185,8 +176,7 @@ class Module:
             self.widget.setStyleSheet('')
 
     def update_pec15(self, pec15: int):
-        self.pec15 = pec15
-        self.pec15_label.setText(f'pec15: {self.pec15}')
+        self.pec15_label.setText(f'pec15: {pec15}')
 
     def check_uptime(self):
         if self.available == 'online':
