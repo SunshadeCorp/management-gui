@@ -282,6 +282,7 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def calc_cell_diff(self):
         voltages: list[float] = []
+        accurate_voltages: list[float] = []
         socs: list[float] = []
         for ident in self.modules:
             if self.modules[ident].hidden:
@@ -291,8 +292,14 @@ class MqttLiveWindow(Ui_MainWindow):
                 if cell.voltage is not None:
                     voltages.append(cell.voltage)
                     socs.append(cell.get_soc())
+                if cell.accurate_voltage is not None:
+                    accurate_voltages.append(cell.accurate_voltage)
         if len(voltages) < 1:
             return
+        accurate_cell_diff_text = ''
+        if len(accurate_voltages) > 0:
+            accurate_cell_diff = (max(accurate_voltages) - min(accurate_voltages)) * 1000
+            accurate_cell_diff_text = f' [{accurate_cell_diff:.0f}]'
         self.cell_min: float = min(voltages)
         cell_max: float = max(voltages)
         cell_diff: float = (cell_max - self.cell_min) * 1000
@@ -302,7 +309,7 @@ class MqttLiveWindow(Ui_MainWindow):
         soc_max: float = max(socs)
         soc_median: float = statistics.median(socs)
         soc_mean: float = statistics.mean(socs)
-        self.main_window.setWindowTitle(f'{cell_diff:.0f} mV diff'
+        self.main_window.setWindowTitle(f'{cell_diff:.0f}{accurate_cell_diff_text} mV diff'
                                         f', {cell_median:.3f} V median'
                                         f', {cell_mean:.3f} V mean'
                                         f', {self.cell_min:.3f} V min'
