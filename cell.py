@@ -38,6 +38,10 @@ class Cell:
             else:
                 upper_voltage = table_voltage
                 break
+        if lower_voltage == self.UPPER_VOLTAGE:
+            lower_voltage = list(self.DATA_POINTS.keys())[-2]
+        elif upper_voltage == self.LOWER_VOLTAGE:
+            upper_voltage = list(self.DATA_POINTS.keys())[1]
         lower_soc = self.DATA_POINTS[lower_voltage]
         upper_soc = self.DATA_POINTS[upper_voltage]
         d = (upper_voltage - self.voltage) / (upper_voltage - lower_voltage)
