@@ -126,7 +126,7 @@ class MqttLiveWindow(Ui_MainWindow):
         for identifier in self.modules:
             if len(identifier) != 12:
                 continue
-            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.16.bin')
+            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.17.bin')
 
     def show_hidden_clicked(self):
         self.show_hidden = not self.show_hidden
