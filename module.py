@@ -120,6 +120,7 @@ class Module:
         balancing_text = ' (+)' if cell.is_balancing else ''
         accurate_text = f' [{cell.accurate_voltage:.3f}]' if cell.accurate_voltage is not None else ''
         cell.label.setText(f"{number}: {cell.voltage:.3f}{accurate_text}{balancing_text}")
+        cell.label.show()
 
     def update_cell_voltage(self, number: int, voltage: float):
         self.cells[number].voltage = voltage
