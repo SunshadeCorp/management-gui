@@ -89,17 +89,28 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def delete_module(self, identifier: str):
         topics = [
+            'accurate/module_voltage',
+            'accurate/module_temps',
+            'accurate/chip_temp',
             'available',
+            'build_timestamp',
             'chip_temp',
+            'cpu',
+            'esp_sdk',
+            'flash',
+            'ip',
             'module_temps',
             'module_topic',
             'module_voltage',
             'pec15_error_count',
             'total_system_voltage',
             'uptime',
+            'version',
+            'wifi',
         ]
         for i in range(1, 13):
             for cell_topic in self.CELL_TOPICS:
+                topics.append(f'accurate/cell/{i}/{cell_topic}')
                 topics.append(f'cell/{i}/{cell_topic}')
         for topic in topics:
             self.mqtt_client.publish(f'esp-module/{identifier}/{topic}', retain=True)
