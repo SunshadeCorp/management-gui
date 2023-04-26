@@ -5,8 +5,8 @@ from pathlib import Path
 
 import paho.mqtt.client as mqtt
 import qdarktheme
-from PyQt5 import QtWidgets, QtCore
 from fabric import Connection
+from PyQt5 import QtCore, QtWidgets
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
@@ -45,6 +45,8 @@ class MqttLiveWindow(Ui_MainWindow):
         self.auto_resize: bool = bool(int(parameters.get('auto_resize', 0)) == 1)
         self.actionhidden.setChecked(self.show_hidden)
         self.actionauto_resize.setChecked(self.auto_resize)
+
+        self.canBox.hide()
 
         self.hide_modules: set[str] = set()
         hide_modules = parameters.get('hide_modules', 'none')
@@ -92,7 +94,10 @@ class MqttLiveWindow(Ui_MainWindow):
             'accurate/module_voltage',
             'accurate/module_temps',
             'accurate/chip_temp',
+            'auto_detect_battery_type',
             'available',
+            'battery_type',
+            'bms_mode',
             'build_timestamp',
             'chip_temp',
             'cpu',
@@ -102,6 +107,8 @@ class MqttLiveWindow(Ui_MainWindow):
             'module_temps',
             'module_topic',
             'module_voltage',
+            'ota_start',
+            'ota_url',
             'pec15_error_count',
             'total_system_voltage',
             'uptime',
@@ -170,7 +177,7 @@ class MqttLiveWindow(Ui_MainWindow):
             self.modules[identifier].widget.setParent(None)
         self.row = 0
         self.column = 0
-        for identifier in sorted(self.modules):
+        for identifier in sorted(self.modules, key=lambda x: self.modules[x].get_order()):
             if self.modules[identifier].hidden and not self.show_hidden:
                 continue
             self.add_widget_to_grid(self.modules[identifier].widget)
@@ -197,22 +204,13 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def add_widget(self, identifier: str):
         if identifier not in self.modules:
-            module = Module(identifier, self.centralwidget, self.gridLayout, self.mqtt_client)
+            module = Module(identifier, self.moduleBox, self.moduleBoxLayout, self.mqtt_client)
             self.update_all_labels(module)
             self.add_widget_to_grid(module.widget)
             self.modules[identifier] = module
 
     def add_widget_to_grid(self, widget):
-        if 'right' not in self.spacer:
-            self.spacer['right'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding,
-                                                         QtWidgets.QSizePolicy.Minimum)
-            self.gridLayout.addItem(self.spacer['right'], 0, self.max_columns)
-        if 'bottom' in self.spacer:
-            self.gridLayout.removeItem(self.spacer['bottom'])
-        self.spacer['bottom'] = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Minimum,
-                                                      QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout.addItem(self.spacer['bottom'], self.row + 1, 0)
-        self.gridLayout.addWidget(widget, self.row, self.column)
+        self.moduleBoxLayout.addWidget(widget, self.row, self.column)
         self.column += 1
         if self.column >= self.max_columns:
             self.row += 1
@@ -380,7 +378,8 @@ class MqttLiveWindow(Ui_MainWindow):
                 'total_current': msg.payload.decode()
             }})
         elif msg.topic == 'master/core/config/balancing_enabled':
-            self.actionbalancing_enabled.setChecked(msg.payload.decode().lower() == 'true')
+            self.main_window.signal.emit({'func': self.actionbalancing_enabled.setChecked,
+                                          'arg': msg.payload.decode().lower() == 'true'})
 
 
 if __name__ == '__main__':

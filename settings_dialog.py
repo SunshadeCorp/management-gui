@@ -5,10 +5,10 @@ from pathlib import Path
 
 import yaml
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QComboBox, QWidget
+from PyQt5.QtWidgets import QComboBox, QDialog, QLabel, QLineEdit, QWidget
 
 from ui.settings import Ui_Dialog
-from utils import save_config_local, get_config_local
+from utils import get_config_local, save_config_local
 
 
 class SettingsDialog(Ui_Dialog):

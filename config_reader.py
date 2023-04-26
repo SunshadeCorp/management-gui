@@ -1,12 +1,12 @@
-from queue import Queue, Empty
+from queue import Empty, Queue
 from typing import Callable
 
-from PyQt5.QtCore import pyqtBoundSignal
-from PyQt5.QtWidgets import QPushButton, QTableWidget, QGridLayout, QStatusBar
 from fabric import Connection
 from paramiko.ssh_exception import NoValidConnectionsError
+from PyQt5.QtCore import pyqtBoundSignal
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QStatusBar, QTableWidget
 
-from utils import get_yaml_file, get_config_file
+from utils import get_config_file, get_yaml_file
 
 
 class ConfigReader:

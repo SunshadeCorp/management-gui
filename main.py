@@ -4,8 +4,8 @@ import sys
 import threading
 from pathlib import Path
 
-from PyQt5 import QtWidgets, QtCore
 from fabric import Connection
+from PyQt5 import QtCore, QtWidgets
 
 from config_reader import ConfigReader
 from credentials import Credentials

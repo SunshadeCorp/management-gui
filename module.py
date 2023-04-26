@@ -84,6 +84,14 @@ class Module:
     def get_title(self):
         return self.identifier if self.number is None else f'{self.identifier} [{self.number}]'
 
+    def get_order(self):
+        if self.number is not None:
+            return f'{self.number:03d}a'
+        try:
+            return f'{int(self.identifier):03d}'
+        except ValueError:
+            return self.identifier
+
     def get_median_voltage(self) -> float:
         voltages: list[float] = []
         for cell_number in self.cells:
