@@ -12,19 +12,28 @@ from utils import get_config_local, save_config_local
 
 
 class SettingsDialog(Ui_Dialog):
+    @staticmethod
+    def _get_config(config: dict[str, str], config_file: str):
+        defaults = config
+        configuration = copy.deepcopy(defaults)
+        save_file = {'last_used': ''}
+
+        if len(config_file) > 0:
+            save_file_read: dict = get_config_local(Path(config_file))
+            if 'error' not in save_file_read and 'last_used' in save_file_read:
+                save_file = save_file_read
+                configuration = copy.deepcopy(save_file[save_file['last_used']])
+        return defaults, configuration, save_file
+
+    @staticmethod
+    def get_config(config: dict[str, str], config_file: str):
+        return SettingsDialog._get_config(config, config_file)[1]
+
     def __init__(self, configuration: dict[str, str], config_file: str = ''):
         self.dialog = QDialog(None, QtCore.Qt.WindowCloseButtonHint)
         self.setupUi(self.dialog)
 
-        self.defaults = configuration
-        self.configuration = copy.deepcopy(self.defaults)
-        self.save_file = {'last_used': ''}
-
-        if len(config_file) > 0:
-            save_file: dict = get_config_local(Path(config_file))
-            if 'error' not in save_file and 'last_used' in save_file:
-                self.save_file = save_file
-                self.configuration = copy.deepcopy(self.save_file[self.save_file['last_used']])
+        self.defaults, self.configuration, self.save_file = self._get_config(configuration, config_file)
 
         self.widgets: dict[str, QWidget] = {}
 

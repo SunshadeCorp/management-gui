@@ -78,6 +78,8 @@
     <addaction name="actiondelete_offline"/>
     <addaction name="actiondelete_no_slave_mapping"/>
     <addaction name="actionota_update_all"/>
+    <addaction name="separator"/>
+    <addaction name="actiongenerate_slave_mapping"/>
    </widget>
    <widget class="QMenu" name="menuwindow">
     <property name="title">
@@ -180,6 +182,11 @@
    </property>
    <property name="text">
     <string>dark_mode</string>
+   </property>
+  </action>
+  <action name="actiongenerate_slave_mapping">
+   <property name="text">
+    <string>generate_slave_mapping</string>
    </property>
   </action>
  </widget>

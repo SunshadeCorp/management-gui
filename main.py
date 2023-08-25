@@ -4,6 +4,7 @@ import sys
 import threading
 from pathlib import Path
 
+import qdarktheme
 from fabric import Connection
 from PyQt5 import QtCore, QtWidgets
 
@@ -64,16 +65,15 @@ class MainWindow(Ui_MainWindow):
 
     def show(self):
         self.main_window.show()
-        self.app.exec_()
+        sys.exit(self.app.exec_())
 
     def show_mqtt_live(self):
         store = self.reader_list['credentials'].store
-        parameters: dict = {
-            'host': self.config['host'],
-            'username': store['mqtt_user'],
-            'password': store['mqtt_password'],
-        }
-        w = MqttLiveWindow(parameters)
+        parameters: dict = SettingsDialog.get_config(MqttLiveWindow.DEFAULT_SETTINGS, MqttLiveWindow.SETTINGS_FILE)
+        parameters['host'] = self.config['host']
+        parameters['username'] = store['mqtt_user']
+        parameters['password'] = store['mqtt_password']
+        w = MqttLiveWindow(parameters, as_app=False)
         w.show()
 
     def get_connection(self):
@@ -120,5 +120,7 @@ class MainWindow(Ui_MainWindow):
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
+    app = QtWidgets.QApplication(sys.argv)
+    qdarktheme.setup_theme("dark")
     main_window = MainWindow()
     main_window.show()

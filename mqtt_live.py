@@ -5,26 +5,44 @@ from pathlib import Path
 
 import paho.mqtt.client as mqtt
 import qdarktheme
+import yaml
 from fabric import Connection
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCloseEvent
+from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QWidgetItem
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
 from module import Module
+from module_widget import ModuleWidget
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
 from utils import get_config_local, get_yaml_file
 
 
 class MqttLiveWindow(Ui_MainWindow):
+    SETTINGS_FILE: str = 'mqtt_live.yaml'
+    DEFAULT_SETTINGS: dict = {
+        'host': '127.0.0.1',
+        'username': '',
+        'password': '',
+        'max_columns': 6,
+        'show_hidden': 0,
+        'hide_modules': 'none',
+        'auto_resize': 1
+    }
     CELL_TOPICS: list = [
         'voltage',
         'is_balancing'
     ]
 
-    def __init__(self, parameters: dict):
-        self.app = QtWidgets.QApplication(sys.argv)
+    def __init__(self, parameters: dict, as_app=True):
+        self.as_app = as_app
+        if self.as_app:
+            self.app = QtWidgets.QApplication(sys.argv)
         self.main_window = CustomSignalWindow()
+        self.main_window.closeEvent = self.close_event
         self.setupUi(self.main_window)
 
         self.actionread_accurate_all.triggered.connect(self.read_accurate_all)
@@ -33,6 +51,7 @@ class MqttLiveWindow(Ui_MainWindow):
         self.actiondelete_offline.triggered.connect(self.delete_offline)
         self.actiondelete_no_slave_mapping.triggered.connect(self.delete_no_slave_mapping)
         self.actionota_update_all.triggered.connect(self.ota_update_all)
+        self.actiongenerate_slave_mapping.triggered.connect(self.generate_slave_mapping)
 
         self.actionhidden.triggered.connect(self.show_hidden_clicked)
         self.actionuptime.triggered.connect(self.update_modules)
@@ -78,8 +97,12 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def show(self):
         self.main_window.show()
-        self.app.exec_()
+        if self.as_app:
+            sys.exit(self.app.exec_())
+
+    def close_event(self, a0: QCloseEvent) -> None:
         self.mqtt_client.loop_stop()
+        a0.accept()
 
     def read_accurate_all(self):
         for identifier in self.modules:
@@ -140,6 +163,44 @@ class MqttLiveWindow(Ui_MainWindow):
             if identifier not in file['slaves']:
                 self.delete_module(identifier)
 
+    def find_module_by_item(self, item: QWidgetItem):
+        if not item:
+            return None
+        module_widget = item.widget()
+        if not module_widget:
+            return None
+        if not isinstance(module_widget, ModuleWidget):
+            return None
+        for identifier in self.modules:
+            widget = self.modules[identifier].widget
+            if widget == module_widget:
+                return self.modules[identifier]
+        return None
+
+    def generate_slave_mapping(self):
+        comments: str = ''
+        mapping: dict = {'slaves': {}}
+        counter: int = 1
+        for row in range(self.moduleBoxLayout.rowCount()):
+            for col in range(self.moduleBoxLayout.columnCount()):
+                item = self.moduleBoxLayout.itemAtPosition(row, col)
+                module = self.find_module_by_item(item)
+                if module:
+                    if module.is_mac() or module.mac is not None:
+                        mapping['slaves'][module.get_topic()] = {'number': counter}
+                    else:
+                        comments += f'# {module.identifier} not found!\n'
+                    counter += 1
+        dialog = QDialog()
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dialog.resize(600, 450)
+        dialog.setWindowTitle("slave_mapping.yaml")
+        layout = QVBoxLayout(dialog)
+        textbox = QTextEdit(dialog)
+        textbox.setText(comments + yaml.dump(mapping, default_flow_style=False, sort_keys=False))
+        layout.addWidget(textbox)
+        dialog.exec_()
+
     def ota_update_all(self):
         for identifier in self.modules:
             if len(identifier) != 12:
@@ -159,7 +220,10 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def update_modules(self):
         for identifier in self.modules:
-            self.update_all_labels(self.modules[identifier])
+            module = self.modules[identifier]
+            if module.mac is not None and len(module.build_timestamp_label.text()) <= 1:
+                module.build_timestamp_label.setText(self.modules[module.mac].build_timestamp_label.text())
+            self.update_all_labels(module)
         if self.auto_resize:
             QtCore.QTimer.singleShot(100, self.resize_window)
 
@@ -387,15 +451,7 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     qdarktheme.setup_theme("dark")
-    settings_dialog = SettingsDialog({
-        'host': '127.0.0.1',
-        'username': '',
-        'password': '',
-        'max_columns': 6,
-        'show_hidden': 0,
-        'hide_modules': 'none',
-        'auto_resize': 1
-    }, 'mqtt_live.yaml')
+    settings_dialog = SettingsDialog(MqttLiveWindow.DEFAULT_SETTINGS, MqttLiveWindow.SETTINGS_FILE)
     if settings_dialog.result == 1:
         main_window = MqttLiveWindow(settings_dialog.configuration)
         main_window.show()

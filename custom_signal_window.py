@@ -9,6 +9,11 @@ class CustomSignalWindow(QMainWindow):
         super().__init__()
         self.signal.connect(self.signaling)
 
+    def event(self, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.StatusTip:
+            return True
+        return super().event(event)
+
     @staticmethod
     def signaling(work: dict):
         if 'arg' in work:
