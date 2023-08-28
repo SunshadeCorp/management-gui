@@ -1,6 +1,7 @@
 import os
 import statistics
 import sys
+import threading
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
@@ -10,7 +11,7 @@ from fabric import Connection
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QWidgetItem
+from PyQt5.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxLayout, QWidgetItem
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
@@ -18,7 +19,7 @@ from module import Module
 from module_widget import ModuleWidget
 from settings_dialog import SettingsDialog
 from ui.mqtt_live import Ui_MainWindow
-from utils import get_config_local, get_yaml_file
+from utils import get_config_local, get_yaml_file, put_file_sudo
 
 
 class MqttLiveWindow(Ui_MainWindow):
@@ -199,6 +200,44 @@ class MqttLiveWindow(Ui_MainWindow):
         textbox = QTextEdit(dialog)
         textbox.setText(comments + yaml.dump(mapping, default_flow_style=False, sort_keys=False))
         layout.addWidget(textbox)
+        button_layout = QHBoxLayout()
+        button_yaml = QPushButton("Set yaml", dialog)
+        button_layout.addWidget(button_yaml)
+
+        button_restart = QPushButton("Restart master", dialog)
+        button_layout.addWidget(button_restart)
+        layout.addLayout(button_layout)
+
+        def set_slave_mapping(content: str):
+            config = get_config_local(Path('config.yaml'))
+            with Connection(host=config['host'], user=config['user'],
+                            connect_kwargs={'password': config['password']}) as c:
+                put_file_sudo(c, content, '/docker/easybms-master/slave_mapping.yaml')
+            self.main_window.signal.emit({'func': button_yaml.setEnabled, 'arg': True})
+            self.main_window.signal.emit({'func': button_yaml.setText, 'arg': 'Done.'})
+
+        def set_yaml_button():
+            button_yaml.setEnabled(False)
+            button_yaml.setText('...')
+            threading.Thread(target=set_slave_mapping, args=(textbox.toPlainText(),), daemon=True).start()
+
+        button_yaml.clicked.connect(set_yaml_button)
+
+        def restart_master():
+            config = get_config_local(Path('config.yaml'))
+            with Connection(host=config['host'], user=config['user'],
+                            connect_kwargs={'password': config['password']}) as c:
+                c.sudo('docker-compose -f /docker/docker-compose.yml restart easybms-master')
+            self.main_window.signal.emit({'func': button_restart.setEnabled, 'arg': True})
+            self.main_window.signal.emit({'func': button_restart.setText, 'arg': 'Done.'})
+
+        def restart_button():
+            button_restart.setEnabled(False)
+            button_restart.setText('...')
+            threading.Thread(target=restart_master, daemon=True).start()
+
+        button_restart.clicked.connect(restart_button)
+
         dialog.exec_()
 
     def ota_update_all(self):

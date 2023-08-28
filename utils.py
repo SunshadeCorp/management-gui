@@ -1,5 +1,8 @@
 import configparser
-from io import BytesIO
+import secrets
+import string
+from datetime import datetime
+from io import BytesIO, StringIO
 from pathlib import Path
 
 import yaml
@@ -10,6 +13,20 @@ def get_file(c: Connection, path: str) -> bytes:
     io_obj = BytesIO()
     c.get(path, io_obj)
     return io_obj.getvalue()
+
+
+def put_file_sudo(c: Connection, content: str, target: str):
+    buffer = StringIO()
+    buffer.write(content)
+    random_string: str = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+    c.put(buffer, f'/tmp/{random_string}')
+    commands = [
+        f'sudo cp {target} {target}.{datetime.now().strftime("%Y%m%d%H%M%S")}',
+        f'sudo chown --reference={target} /tmp/{random_string}',
+        f'sudo chmod --reference={target} /tmp/{random_string}',
+        f'sudo mv /tmp/{random_string} {target}'
+    ]
+    c.run(' ; '.join(commands))
 
 
 def get_config_file(c: Connection, path: str) -> dict:
