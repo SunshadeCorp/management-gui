@@ -52,6 +52,7 @@ class MqttLiveWindow(Ui_MainWindow):
         self.actiondelete_offline.triggered.connect(self.delete_offline)
         self.actiondelete_no_slave_mapping.triggered.connect(self.delete_no_slave_mapping)
         self.actionota_update_all.triggered.connect(self.ota_update_all)
+        self.actionreset_can_limits.triggered.connect(self.reset_can_limits)
         self.actiongenerate_slave_mapping.triggered.connect(self.generate_slave_mapping)
 
         self.actionhidden.triggered.connect(self.show_hidden_clicked)
@@ -245,6 +246,12 @@ class MqttLiveWindow(Ui_MainWindow):
             if len(identifier) != 12:
                 continue
             self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.19.refactor.bin')
+
+    def reset_can_limits(self):
+        self.mqtt_client.publish('master/can/limits/max_charge_current/reset', payload='1')
+        self.mqtt_client.publish('master/can/limits/max_discharge_current/reset', payload='1')
+        self.mqtt_client.publish('master/can/limits/max_voltage/reset', payload='1')
+        self.mqtt_client.publish('master/can/limits/min_voltage/reset', payload='1')
 
     def show_hidden_clicked(self):
         self.show_hidden = not self.show_hidden

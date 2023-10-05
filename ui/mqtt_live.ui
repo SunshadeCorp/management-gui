@@ -78,6 +78,7 @@
     <addaction name="actiondelete_offline"/>
     <addaction name="actiondelete_no_slave_mapping"/>
     <addaction name="actionota_update_all"/>
+    <addaction name="actionreset_can_limits"/>
     <addaction name="separator"/>
     <addaction name="actiongenerate_slave_mapping"/>
    </widget>
@@ -187,6 +188,11 @@
   <action name="actiongenerate_slave_mapping">
    <property name="text">
     <string>generate_slave_mapping</string>
+   </property>
+  </action>
+  <action name="actionreset_can_limits">
+   <property name="text">
+    <string>reset_can_limits</string>
    </property>
   </action>
  </widget>
