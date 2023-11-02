@@ -366,7 +366,10 @@ class MqttLiveWindow(Ui_MainWindow):
         elif 'module_voltage' in data:
             module.update_voltage(data['module_voltage'])
         elif 'voltage' in data:
-            module.update_cell_voltage(data['number'], float(data['voltage']))
+            try:
+                module.update_cell_voltage(data['number'], float(data['voltage']))
+            except ValueError:
+                print(data['identifier'], data['voltage'], 'bad data!')
             module.color_median_voltage(self.cell_min + 0.01)
         elif 'accurate_voltage' in data:
             module.cells[data['number']].accurate_voltage = float(data['accurate_voltage'])
