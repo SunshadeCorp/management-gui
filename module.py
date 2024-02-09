@@ -92,6 +92,13 @@ class Module:
         except ValueError:
             return self.identifier
 
+    def get_mean_soc(self) -> float:
+        socs: list[float] = []
+        for cell_number in self.cells:
+            if self.cells[cell_number].voltage is not None:
+                socs.append(self.cells[cell_number].get_soc())
+        return statistics.mean(socs)
+
     def get_median_voltage(self) -> float:
         voltages: list[float] = []
         for cell_number in self.cells:
@@ -127,14 +134,15 @@ class Module:
         cell: Cell = self.cells[number]
         balancing_text = ' (+)' if cell.is_balancing else ''
         accurate_text = f' [{cell.accurate_voltage:.3f}]' if cell.accurate_voltage is not None else ''
-        cell.label.setText(f"{number}: {cell.voltage:.3f}{accurate_text}{balancing_text}")
+        cell_voltage = f'{cell.voltage:.3f}' if cell.voltage is not None else '-'
+        cell.label.setText(f"{number}: {cell_voltage}{accurate_text}{balancing_text}")
         cell.label.show()
 
     def update_cell_voltage(self, number: int, voltage: float):
         self.cells[number].voltage = voltage
         self.refresh_cell_text(number)
+        self.header.setText(f'{self.get_title()}: {self.get_mean_soc():.1f} %')
         self.cell_median_voltage: float = self.get_median_voltage()
-        self.header.setText(f'{self.get_title()}: {self.cell_median_voltage:.3f}')
         for cell_number in self.cells:
             current_cell = self.cells[cell_number]
             if current_cell.voltage is not None:
