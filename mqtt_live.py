@@ -8,10 +8,10 @@ import paho.mqtt.client as mqtt
 import qdarktheme
 import yaml
 from fabric import Connection
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxLayout, QWidgetItem
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QCloseEvent
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxLayout, QWidgetItem
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
@@ -100,7 +100,7 @@ class MqttLiveWindow(Ui_MainWindow):
     def show(self):
         self.main_window.show()
         if self.as_app:
-            sys.exit(self.app.exec_())
+            sys.exit(self.app.exec())
 
     def close_event(self, a0: QCloseEvent) -> None:
         self.mqtt_client.loop_stop()
@@ -194,7 +194,7 @@ class MqttLiveWindow(Ui_MainWindow):
                         comments += f'# {module.identifier} not found!\n'
                     counter += 1
         dialog = QDialog()
-        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
         dialog.resize(600, 450)
         dialog.setWindowTitle("slave_mapping.yaml")
         layout = QVBoxLayout(dialog)
@@ -239,13 +239,13 @@ class MqttLiveWindow(Ui_MainWindow):
 
         button_restart.clicked.connect(restart_button)
 
-        dialog.exec_()
+        dialog.exec()
 
     def ota_update_all(self):
         for identifier in self.modules:
             if len(identifier) != 12:
                 continue
-            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.19.refactor.bin')
+            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.17-garage-single.bin')
 
     def reset_can_limits(self):
         self.mqtt_client.publish('master/can/limits/max_charge_current/reset', payload='1')
@@ -302,7 +302,7 @@ class MqttLiveWindow(Ui_MainWindow):
         client.subscribe('master/core/config/balancing_enabled')
 
     @staticmethod
-    def update_label_visibility(action: QtWidgets.QAction, label: QtWidgets.QLabel):
+    def update_label_visibility(action: QAction, label: QtWidgets.QLabel):
         if action.isChecked():
             label.show()
         else:

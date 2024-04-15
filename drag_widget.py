@@ -1,5 +1,5 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import Qt
 
 
 class DragWidget(QtWidgets.QWidget):
@@ -21,7 +21,7 @@ class DragWidget(QtWidgets.QWidget):
         self.on_drop.emit({'self': self, 'widget': a0.source()})
 
     def mouseMoveEvent(self, a0: QtGui.QMouseEvent) -> None:
-        if a0.buttons() == Qt.LeftButton:
+        if a0.buttons() == Qt.MouseButton.LeftButton:
             drag = QtGui.QDrag(self)
             mime = QtCore.QMimeData()
             drag.setMimeData(mime)
@@ -30,10 +30,10 @@ class DragWidget(QtWidgets.QWidget):
             self.render(pixmap)
             drag.setPixmap(pixmap)
             self.on_drag_start.emit({'self': self})
-            drag.exec_(Qt.MoveAction)
+            drag.exec(Qt.DropAction.MoveAction)
 
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         o = QtWidgets.QStyleOption()
         o.initFrom(self)
         p = QtGui.QPainter(self)
-        self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, o, p, self)
+        self.style().drawPrimitive(QtWidgets.QStyle.PrimitiveElement.PE_Widget, o, p, self)

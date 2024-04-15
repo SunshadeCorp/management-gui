@@ -2,7 +2,7 @@ import statistics
 import time
 
 import paho.mqtt.client as mqtt
-from PyQt5 import QtWidgets
+from PyQt6 import QtWidgets
 
 from cell import Cell
 from module_widget import ModuleWidget

@@ -1,5 +1,5 @@
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMainWindow
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QMainWindow
 
 
 class CustomSignalWindow(QMainWindow):
@@ -10,7 +10,7 @@ class CustomSignalWindow(QMainWindow):
         self.signal.connect(self.signaling)
 
     def event(self, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.StatusTip:
+        if event.type() == event.Type.StatusTip:
             return True
         return super().event(event)
 

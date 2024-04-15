@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 import yaml
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QComboBox, QDialog, QLabel, QLineEdit, QWidget
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtWidgets import QComboBox, QDialog, QLabel, QLineEdit, QWidget
 
 from ui.settings import Ui_Dialog
 from utils import get_config_local, save_config_local
@@ -30,7 +30,7 @@ class SettingsDialog(Ui_Dialog):
         return SettingsDialog._get_config(config, config_file)[1]
 
     def __init__(self, configuration: dict[str, str], config_file: str = ''):
-        self.dialog = QDialog(None, QtCore.Qt.WindowCloseButtonHint)
+        self.dialog = QDialog(None, QtCore.Qt.WindowType.WindowCloseButtonHint)
         self.setupUi(self.dialog)
 
         self.defaults, self.configuration, self.save_file = self._get_config(configuration, config_file)
@@ -55,7 +55,7 @@ class SettingsDialog(Ui_Dialog):
         self.gridLayout.addItem(spacer, len(self.configuration) + 1, 0, 1, 2)
         self.gridLayout.addWidget(self.buttonBox, len(self.configuration) + 2, 0, 1, 2)
 
-        self.result = self.dialog.exec_()
+        self.result = self.dialog.exec()
         if self.result == 1:
             for key in self.widgets:
                 widget: QWidget = self.widgets[key]
