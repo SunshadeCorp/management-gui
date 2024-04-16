@@ -4,4 +4,4 @@ clean:
 	rm -f *.py
 
 %.py: %.ui
-	../venv/Scripts/pyuic6 -x $< -o $@
+	pyuic6 -x $< -o $@
