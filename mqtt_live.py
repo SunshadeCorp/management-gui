@@ -31,7 +31,8 @@ class MqttLiveWindow(Ui_MainWindow):
         'max_columns': 6,
         'show_hidden': 0,
         'hide_modules': 'none',
-        'auto_resize': 1
+        'auto_resize': 1,
+        'mqtt_prefix': ''
     }
     CELL_TOPICS: list = [
         'voltage',
@@ -84,6 +85,9 @@ class MqttLiveWindow(Ui_MainWindow):
         self.total_system_current: float = 0
         self.cell_min: float = 0
 
+        self.mqtt_prefix: str = parameters.get('mqtt_prefix', '')
+        if len(self.mqtt_prefix) > 0 and not self.mqtt_prefix.endswith('/'):
+            self.mqtt_prefix = f'{self.mqtt_prefix}/'
         self.mqtt_host = parameters['host']
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.mqtt_on_connect
@@ -295,11 +299,10 @@ class MqttLiveWindow(Ui_MainWindow):
         if self.auto_resize:
             self.resize_window()
 
-    @staticmethod
-    def mqtt_on_connect(client: mqtt.Client, userdata: any, flags: dict, rc: int):
-        client.subscribe('esp-module/#')
-        client.subscribe('esp-total/#')
-        client.subscribe('master/core/config/balancing_enabled')
+    def mqtt_on_connect(self, client: mqtt.Client, userdata: any, flags: dict, rc: int):
+        client.subscribe(f'{self.mqtt_prefix}esp-module/#')
+        client.subscribe(f'{self.mqtt_prefix}esp-total/#')
+        client.subscribe(f'{self.mqtt_prefix}master/core/config/balancing_enabled')
 
     @staticmethod
     def update_label_visibility(action: QAction, label: QtWidgets.QLabel):
@@ -459,6 +462,8 @@ class MqttLiveWindow(Ui_MainWindow):
     def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
         if len(msg.payload) < 1:
             return
+        if len(self.mqtt_prefix) > 0 and msg.topic.startswith(self.mqtt_prefix):
+            msg.topic = msg.topic[len(self.mqtt_prefix):]
         if msg.topic.startswith('esp-module'):
             topic: str = msg.topic[msg.topic.find('/') + 1:]
             identifier: str = topic[:topic.find('/')]
