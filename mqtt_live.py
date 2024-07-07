@@ -463,7 +463,7 @@ class MqttLiveWindow(Ui_MainWindow):
         if len(msg.payload) < 1:
             return
         if len(self.mqtt_prefix) > 0 and msg.topic.startswith(self.mqtt_prefix):
-            msg.topic = msg.topic[len(self.mqtt_prefix):]
+            msg.topic = msg.topic[len(self.mqtt_prefix):].encode('utf-8')
         if msg.topic.startswith('esp-module'):
             topic: str = msg.topic[msg.topic.find('/') + 1:]
             identifier: str = topic[:topic.find('/')]
