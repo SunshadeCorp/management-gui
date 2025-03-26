@@ -82,4 +82,6 @@ class SettingsDialog(Ui_Dialog):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    print(SettingsDialog({'Test1': 'lol', 'test2': 123}).result)
+    settings = SettingsDialog({'Test1': 'lol', 'test2': 123})
+    print(settings.result)
+    print(settings.configuration)
