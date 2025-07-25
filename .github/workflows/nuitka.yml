@@ -16,7 +16,6 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install --no-cache-dir --prefer-binary -r requirements.txt
-      - run: ui/make.bat
       - uses: Nuitka/Nuitka-Action@v1.3
         with:
           script-name: mqtt_live.py
@@ -28,12 +27,13 @@ jobs:
 #        with:
 #          name: mqtt_live
 #          path: build/mqtt_live.dist/
-      - run: cp LICENSE mqtt_live.dist/build/
+      - run: cp LICENSE build/mqtt_live.dist/
       - uses: thedoctor0/zip-release@0.7.6
         with:
           filename: mqtt_live.zip
-          path: mqtt_live.dist/build/
+          directory: build/mqtt_live.dist/
           type: 7z
+      - run: dir -s
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: mqtt_live.dist/build/mqtt_live.zip
+          artifacts: build/mqtt_live.dist/mqtt_live.zip

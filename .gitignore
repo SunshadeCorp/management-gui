@@ -1,6 +1,7 @@
+*.build/
+*.dist/
 config.yaml
 mqtt_live.yaml
-ui/*.py
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm+all
