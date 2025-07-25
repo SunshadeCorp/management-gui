@@ -1,4 +1,6 @@
-PyQt6~=6.6.1
+PyQt6~=6.9.1
+PyQt6-Qt6~=6.9.1
+PyQt6_sip~=13.10.2
 PyYAML~=6.0
 fabric~=2.7.1
 paho-mqtt~=1.6.1
