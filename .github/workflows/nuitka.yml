@@ -16,6 +16,12 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install --no-cache-dir --prefer-binary -r requirements.txt
+      - name: Add Qt6 DLLs to PATH
+        shell: pwsh
+        run: |
+          $qtBin = Join-Path $env:pythonLocation 'Lib\site-packages\PyQt6\Qt6\bin'
+          echo "PATH=$qtBin;${{ env.PATH }}" >> $GITHUB_ENV
+      - run: ui/make.bat
       - uses: Nuitka/Nuitka-Action@v1.3
         with:
           script-name: mqtt_live.py
