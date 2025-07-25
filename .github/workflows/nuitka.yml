@@ -20,7 +20,12 @@ jobs:
         shell: pwsh
         run: |
           $qtBin = Join-Path $Env:pythonLocation 'Lib\site-packages\PyQt6\Qt6\bin'
-          echo "PATH=$qtBin;$Env:PATH" >> $GITHUB_ENV
+          echo "export PATH=\$PATH:$qtBin" >> $GITHUB_ENV
+      - name: Debug Environment
+        run: |
+          echo "PATH: $PATH"
+          echo "SHELL: $SHELL"
+        shell: bash
       - run: ui/make.bat
       - uses: Nuitka/Nuitka-Action@v1.3
         with:
