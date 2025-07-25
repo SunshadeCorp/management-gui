@@ -20,13 +20,12 @@ jobs:
         shell: pwsh
         run: |
           $qtBin = Join-Path $Env:pythonLocation 'Lib\site-packages\PyQt6\Qt6\bin'
-          echo $qtBin
           Add-Content $env:GITHUB_PATH $qtBin
-      - name: Debug Environment
-        run: |
-          echo "PATH: $PATH"
-          echo "SHELL: $SHELL"
-        shell: bash
+#      - name: Debug Environment
+#        run: |
+#          echo "PATH: $PATH"
+#          echo "SHELL: $SHELL"
+#        shell: bash
       - run: ui/make.bat
       - uses: Nuitka/Nuitka-Action@v1.3
         with:
@@ -45,7 +44,7 @@ jobs:
           filename: mqtt_live.zip
           directory: build/mqtt_live.dist/
           type: 7z
-      - run: dir -s
+#      - run: dir -s
       - uses: ncipollo/release-action@v1
         with:
           artifacts: build/mqtt_live.dist/mqtt_live.zip
