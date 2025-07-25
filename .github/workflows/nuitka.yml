@@ -1,0 +1,39 @@
+name: build .exe
+
+on:
+  push:
+    tags: [ '*.*.*' ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install --no-cache-dir --prefer-binary -r requirements.txt
+      - run: ui/make.bat
+      - uses: Nuitka/Nuitka-Action@v1.3
+        with:
+          script-name: mqtt_live.py
+          msvc: latest
+          mode: standalone
+          windows-console-mode: disable
+          enable-plugins: pyqt6
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: mqtt_live
+#          path: build/mqtt_live.dist/
+      - run: cp LICENSE mqtt_live.dist/build/
+      - uses: thedoctor0/zip-release@0.7.6
+        with:
+          filename: mqtt_live.zip
+          path: mqtt_live.dist/build/
+          type: 7z
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: mqtt_live.dist/build/mqtt_live.zip

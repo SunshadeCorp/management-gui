@@ -32,7 +32,8 @@ class MqttLiveWindow(Ui_MainWindow):
         'show_hidden': 0,
         'hide_modules': 'none',
         'auto_resize': 1,
-        'mqtt_prefix': ''
+        'mqtt_prefix': '',
+        'ota_file': 'firmware.bin'
     }
     CELL_TOPICS: list = [
         'voltage',
@@ -71,7 +72,7 @@ class MqttLiveWindow(Ui_MainWindow):
         self.canBox.hide()
 
         self.hide_modules: set[str] = set()
-        hide_modules = parameters.get('hide_modules', 'none')
+        hide_modules = parameters.get('hide_modules', self.DEFAULT_SETTINGS['hide_modules'])
         if hide_modules != '' and hide_modules.lower() != 'none':
             modules: list[str] = hide_modules.split(',')
             self.hide_modules: set[str] = set(modules)
@@ -96,6 +97,8 @@ class MqttLiveWindow(Ui_MainWindow):
         self.mqtt_client.connect_async(host=self.mqtt_host, port=1883, keepalive=60)
 
         self.mqtt_client.loop_start()
+
+        self.ota_file = parameters.get('ota_file', self.DEFAULT_SETTINGS['ota_file'])
 
         timer = QtCore.QTimer(self.main_window)
         timer.timeout.connect(self.timer_work)
@@ -249,7 +252,7 @@ class MqttLiveWindow(Ui_MainWindow):
         for identifier in self.modules:
             if len(identifier) != 12:
                 continue
-            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload='easybms-slave-v0.17-garage-single.bin')
+            self.mqtt_client.publish(f'esp-module/{identifier}/ota', payload=self.ota_file)
 
     def reset_can_limits(self):
         self.mqtt_client.publish('master/can/limits/max_charge_current/reset', payload='1')
