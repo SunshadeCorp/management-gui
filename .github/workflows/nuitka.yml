@@ -20,7 +20,8 @@ jobs:
         shell: pwsh
         run: |
           $qtBin = Join-Path $Env:pythonLocation 'Lib\site-packages\PyQt6\Qt6\bin'
-          echo "${qtBin}" >> $GITHUB_PATH
+          echo $qtBin
+          Add-Content $env:GITHUB_PATH $qtBin
       - name: Debug Environment
         run: |
           echo "PATH: $PATH"
