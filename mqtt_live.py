@@ -1,4 +1,3 @@
-import json
 import os
 import statistics
 import sys
@@ -16,6 +15,7 @@ from PyQt6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxL
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
+from ha_discovery import generate_ha_discovery_payload, SensorDef
 from module import Module
 from module_widget import ModuleWidget
 from settings_dialog import SettingsDialog
@@ -252,50 +252,42 @@ class MqttLiveWindow(Ui_MainWindow):
 
     def set_can_ha_discovery(self):
         sensors = [
-            ('limit_max_voltage', 'master/can/limits/max_voltage', 'voltage', 'V', None),
-            ('limit_min_voltage', 'master/can/limits/min_voltage', 'voltage', 'V', None),
-            ('limit_max_discharge_current', 'master/can/limits/max_discharge_current', 'current', 'A', None),
-            ('limit_max_charge_current', 'master/can/limits/max_charge_current', 'current', 'A', None),
-            ('battery_voltage', 'master/can/battery/voltage', 'voltage', 'V', 'measurement'),
-            ('battery_current', 'master/can/battery/current', 'current', 'A', 'measurement'),
-            ('battery_temp', 'master/can/battery/temp', 'temperature', '°C', 'measurement'),
-            ('battery_max_cell_temp', 'master/can/battery/max_cell_temp', 'temperature', '°C', 'measurement'),
-            ('battery_min_cell_temp', 'master/can/battery/min_cell_temp', 'temperature', '°C', 'measurement'),
-            ('battery_soc', 'master/can/battery/soc', 'battery', '%', 'measurement'),
-            # ('battery_soh', 'master/can/battery/soh', 'battery', '%', None),
-            # ('battery_remaining_capacity_ah', 'master/can/battery/remaining_capacity_ah', None, 'Ah', None),
-            # ('battery_full_capacity_ah', 'master/can/battery/full_capacity_ah', None, 'Ah', None),
-            ('inverter_battery_voltage', 'master/can/inverter/battery_voltage', 'voltage', 'V', 'measurement'),
-            ('inverter_battery_current', 'master/can/inverter/battery_current', 'current', 'A', 'measurement'),
-            ('inverter_temperature', 'master/can/inverter/temperature', 'temperature', '°C', 'measurement'),
-            ('inverter_soc', 'master/can/inverter/soc', 'battery', '%', 'measurement'),
+            SensorDef('limit_max_voltage', state_topic='limits/max_voltage', device_class='voltage', unit='V'),
+            SensorDef('limit_min_voltage', state_topic='limits/min_voltage', device_class='voltage', unit='V'),
+            SensorDef('limit_max_discharge_current', state_topic='limits/max_discharge_current', device_class='current',
+                      unit='A'),
+            SensorDef('limit_max_charge_current', state_topic='limits/max_charge_current', device_class='current',
+                      unit='A'),
+
+            SensorDef('battery_voltage', state_topic='battery/voltage', device_class='voltage', unit='V',
+                      state_class='measurement'),
+            SensorDef('battery_current', state_topic='battery/current', device_class='current', unit='A',
+                      state_class='measurement'),
+            SensorDef('battery_temp', state_topic='battery/temp', device_class='temperature', unit='°C',
+                      state_class='measurement'),
+            SensorDef('battery_max_cell_temp', state_topic='battery/max_cell_temp', device_class='temperature',
+                      unit='°C', state_class='measurement'),
+            SensorDef('battery_min_cell_temp', state_topic='battery/min_cell_temp', device_class='temperature',
+                      unit='°C', state_class='measurement'),
+            SensorDef('battery_soc', state_topic='battery/soc', device_class='battery', unit='%',
+                      state_class='measurement'),
+            # SensorDef('battery_soh', state_topic='battery/soh', device_class='battery', unit='%'),
+            # SensorDef('battery_remaining_capacity_ah', state_topic='battery/remaining_capacity_ah', unit='Ah'),
+            # SensorDef('battery_full_capacity_ah', state_topic='battery/full_capacity_ah', unit='Ah'),
+
+            SensorDef('inverter_battery_voltage', state_topic='inverter/battery_voltage', device_class='voltage',
+                      unit='V', state_class='measurement'),
+            SensorDef('inverter_battery_current', state_topic='inverter/battery_current', device_class='current',
+                      unit='A', state_class='measurement'),
+            SensorDef('inverter_temperature', state_topic='inverter/temperature', device_class='temperature', unit='°C',
+                      state_class='measurement'),
+            SensorDef('inverter_soc', state_topic='inverter/soc', device_class='battery', unit='%',
+                      state_class='measurement'),
         ]
-        payload = {
-            'dev': {  # device
-                'ids': 'esp32_can',  # identifiers
-                'name': 'ESP32 CAN',
-            },
-            'o': {  # origin
-                'name': 'esp32-byd-sim',
-                'sw': '1.0',  # sw_version
-                'url': 'https://github.com/jesseklm/esp32-byd-sim'  # support_url
-            },
-            'avty_t': 'master/can/available',  # availability_topic
-            'cmps': {}  # components
-        }
-        for sensor in sensors:
-            payload['cmps'][sensor[0]] = {
-                'p': 'sensor',  # platform
-                'name': sensor[0],
-                'uniq_id': f"{payload['dev']['ids']}_{sensor[0]}",  # unique_id
-                'stat_t': sensor[1],  # state_topic
-                'unit_of_meas': sensor[3],  # unit_of_measurement
-            }
-            if sensor[2]:
-                payload['cmps'][sensor[0]]['dev_cla'] = sensor[2]  # device_class
-            if sensor[4]:
-                payload['cmps'][sensor[0]]['stat_cla'] = sensor[4]  # state_class
-        self.mqtt_client.publish('homeassistant/device/esp32_can/config', payload=json.dumps(payload), retain=True)
+        payload = generate_ha_discovery_payload(sensors, 'esp32_can', 'ESP32 CAN', 'esp32-byd-sim',
+                                                'https://github.com/jesseklm/esp32-byd-sim', 'master/can/available',
+                                                'master/can/')
+        self.mqtt_client.publish('homeassistant/device/esp32_can/config', payload=payload, retain=True)
 
     def ota_update_all(self):
         for identifier in self.modules:
