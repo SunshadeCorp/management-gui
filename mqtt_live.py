@@ -58,6 +58,7 @@ class MqttLiveWindow(Ui_MainWindow):
         self.actionreset_can_limits.triggered.connect(self.reset_can_limits)
         self.actiongenerate_slave_mapping.triggered.connect(self.generate_slave_mapping)
         self.actionset_can_ha_discovery.triggered.connect(self.set_can_ha_discovery)
+        self.actionset_esp_relay_discovery.triggered.connect(self.set_esp_relay_discovery)
 
         self.actionhidden.triggered.connect(self.show_hidden_clicked)
         self.actionuptime.triggered.connect(self.update_modules)
@@ -288,6 +289,17 @@ class MqttLiveWindow(Ui_MainWindow):
                                                 'https://github.com/jesseklm/esp32-byd-sim', 'master/can/available',
                                                 'master/can/')
         self.mqtt_client.publish('homeassistant/device/esp32_can/config', payload=payload, retain=True)
+
+    def set_esp_relay_discovery(self):
+        sensors = [
+            SensorDef('relay_1', state_topic='1', platform='switch', payload_on='on', payload_off='off',
+                      command_topic=True),
+            SensorDef('relay_2', state_topic='2', platform='switch', payload_on='on', payload_off='off',
+                      command_topic=True),
+        ]
+        payload = generate_ha_discovery_payload(sensors, 'esp32_relays', 'ESP32 Relays', 'esp32-relays',
+                                                'https://github.com/SunshadeCorp', 'esp-total/status', 'master/relays/')
+        self.mqtt_client.publish('homeassistant/device/esp32_relays/config', payload=payload, retain=True)
 
     def ota_update_all(self):
         for identifier in self.modules:

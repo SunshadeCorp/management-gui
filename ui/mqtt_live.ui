@@ -81,7 +81,9 @@
     <addaction name="actionreset_can_limits"/>
     <addaction name="separator"/>
     <addaction name="actiongenerate_slave_mapping"/>
+    <addaction name="separator"/>
     <addaction name="actionset_can_ha_discovery"/>
+    <addaction name="actionset_esp_relay_discovery"/>
    </widget>
    <widget class="QMenu" name="menuwindow">
     <property name="title">
@@ -199,6 +201,11 @@
   <action name="actionset_can_ha_discovery">
    <property name="text">
     <string>set_can_ha_discovery</string>
+   </property>
+  </action>
+  <action name="actionset_esp_relay_discovery">
+   <property name="text">
+    <string>set_esp_relay_discovery</string>
    </property>
   </action>
  </widget>

@@ -14,11 +14,16 @@ class SensorDef:
     payload_off: str | None = None
     entity_category: str | None = None
     precision: int | None = None
+    command_topic: bool | None = None
+    options: list[str] | None = None
+    value_min: int | None = None
+    value_max: int | None = None
+    value_step: float | None = None
 
 
 def generate_ha_discovery_payload(sensors: list[SensorDef], dev_id: str, dev_name: str, o_name: str, o_url: str,
                                   av_topic: str, topic_prefix: str) -> str:
-    payload: dict[str, dict[str, str | dict[str, str | int]]] = {
+    payload: dict[str, dict[str, str | dict]] = {
         'dev': {  # device
             'ids': dev_id,  # identifiers
             'name': dev_name,
@@ -32,7 +37,7 @@ def generate_ha_discovery_payload(sensors: list[SensorDef], dev_id: str, dev_nam
         'cmps': {}  # components
     }
     for sensor in sensors:
-        component: dict[str, str | int] = {
+        component: dict[str, str | int | float | list[str]] = {
             'p': sensor.platform,  # platform
             'name': sensor.name,
             'uniq_id': f"{payload['dev']['ids']}_{sensor.name}",  # unique_id
@@ -45,5 +50,10 @@ def generate_ha_discovery_payload(sensors: list[SensorDef], dev_id: str, dev_nam
         if sensor.payload_off: component['pl_off'] = sensor.payload_off  # payload_off
         if sensor.entity_category: component['ent_cat'] = sensor.entity_category  # entity_category
         if sensor.precision: component['sug_dsp_prc'] = sensor.precision  # suggested_display_precision
+        if sensor.command_topic: component['cmd_t'] = f"{component['stat_t']}/set"  # command_topic
+        if sensor.options: component['ops'] = sensor.options  # options
+        if sensor.value_min: component['min'] = sensor.value_min  # min
+        if sensor.value_max: component['max'] = sensor.value_max  # max
+        if sensor.value_step: component['step'] = sensor.value_step  # step
         payload['cmps'][sensor.name] = component
     return json.dumps(payload)
