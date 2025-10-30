@@ -1,4 +1,4 @@
-from PyQt6 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from drag_widget import DragWidget
 

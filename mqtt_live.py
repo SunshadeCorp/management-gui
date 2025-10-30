@@ -5,13 +5,12 @@ import threading
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
-import qdarktheme
 import yaml
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QCloseEvent
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxLayout, QWidgetItem
 from fabric import Connection
-from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QCloseEvent
-from PyQt6.QtWidgets import QDialog, QHBoxLayout, QPushButton, QTextEdit, QVBoxLayout, QWidgetItem
 
 from cell import Cell
 from custom_signal_window import CustomSignalWindow
@@ -44,7 +43,10 @@ class MqttLiveWindow(Ui_MainWindow):
     def __init__(self, parameters: dict, as_app=True):
         self.as_app = as_app
         if self.as_app:
-            self.app = QtWidgets.QApplication(sys.argv)
+            if not QtWidgets.QApplication.instance():
+                self.app = QtWidgets.QApplication(sys.argv)
+            else:
+                self.app = QtWidgets.QApplication.instance()
         self.main_window = CustomSignalWindow()
         self.main_window.closeEvent = self.close_event
         self.setupUi(self.main_window)
@@ -64,7 +66,6 @@ class MqttLiveWindow(Ui_MainWindow):
         self.actionuptime.triggered.connect(self.update_modules)
         self.actionbuild_timestamp.triggered.connect(self.update_modules)
         self.actionauto_resize.triggered.connect(self.auto_resize_clicked)
-        self.actiondark_mode.triggered.connect(self.switch_dark_mode)
 
         self.max_columns: int = int(parameters.get('max_columns', 4))
         self.show_hidden: bool = bool(int(parameters.get('show_hidden', 0)) == 1)
@@ -93,7 +94,7 @@ class MqttLiveWindow(Ui_MainWindow):
         if len(self.mqtt_prefix) > 0 and not self.mqtt_prefix.endswith('/'):
             self.mqtt_prefix = f'{self.mqtt_prefix}/'
         self.mqtt_host = parameters['host']
-        self.mqtt_client = mqtt.Client()
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.mqtt_client.on_connect = self.mqtt_on_connect
         self.mqtt_client.on_message = self.mqtt_on_message
         self.mqtt_client.username_pw_set(parameters['username'], parameters['password'])
@@ -321,9 +322,6 @@ class MqttLiveWindow(Ui_MainWindow):
         self.auto_resize = not self.auto_resize
         self.sort_modules()
 
-    def switch_dark_mode(self):
-        qdarktheme.setup_theme("dark" if self.actiondark_mode.isChecked() else "light")
-
     def update_modules(self):
         for identifier in self.modules:
             module = self.modules[identifier]
@@ -355,7 +353,7 @@ class MqttLiveWindow(Ui_MainWindow):
         if self.auto_resize:
             self.resize_window()
 
-    def mqtt_on_connect(self, client: mqtt.Client, userdata: any, flags: dict, rc: int):
+    def mqtt_on_connect(self, client, userdata, flags, reason_code, properties):
         client.subscribe(f'{self.mqtt_prefix}esp-module/#')
         client.subscribe(f'{self.mqtt_prefix}esp-total/#')
         client.subscribe(f'{self.mqtt_prefix}master/core/config/balancing_enabled')
@@ -515,7 +513,7 @@ class MqttLiveWindow(Ui_MainWindow):
         }
         self.main_window.signal.emit({'func': self.set_widget, 'arg': data})
 
-    def mqtt_on_message(self, client: mqtt.Client, userdata: any, msg: mqtt.MQTTMessage):
+    def mqtt_on_message(self, client, userdata, msg):
         if len(msg.payload) < 1:
             return
         if len(self.mqtt_prefix) > 0 and msg.topic.startswith(self.mqtt_prefix):
@@ -560,7 +558,6 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QtWidgets.QApplication(sys.argv)
-    qdarktheme.setup_theme("dark")
     settings_dialog = SettingsDialog(MqttLiveWindow.DEFAULT_SETTINGS, MqttLiveWindow.SETTINGS_FILE)
     if settings_dialog.result == 1:
         main_window = MqttLiveWindow(settings_dialog.configuration)

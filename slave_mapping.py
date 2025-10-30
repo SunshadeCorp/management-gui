@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QTableWidgetItem
+from PySide6.QtWidgets import QTableWidgetItem
 
 from config_reader import ConfigReader
 

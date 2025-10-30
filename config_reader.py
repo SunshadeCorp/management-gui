@@ -3,8 +3,8 @@ from typing import Callable
 
 from fabric import Connection
 from paramiko.ssh_exception import NoValidConnectionsError
-from PyQt5.QtCore import pyqtBoundSignal
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QStatusBar, QTableWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QGridLayout, QPushButton, QStatusBar, QTableWidget
 
 from utils import get_config_file, get_yaml_file
 
@@ -15,7 +15,7 @@ class ConfigReader:
     c: Connection
     button: QPushButton
     table_widget: QTableWidget
-    signal: pyqtBoundSignal
+    signal: Signal
     queue: Queue
     name: str
     autosize_window: Callable

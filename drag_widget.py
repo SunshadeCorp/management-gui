@@ -1,11 +1,11 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtCore import Qt
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtCore import Qt
 
 
 class DragWidget(QtWidgets.QWidget):
-    on_drop = QtCore.pyqtSignal(dict)
-    on_drag_start = QtCore.pyqtSignal(dict)
-    on_drag_end = QtCore.pyqtSignal(dict)
+    on_drop = QtCore.Signal(dict)
+    on_drag_start = QtCore.Signal(dict)
+    on_drag_end = QtCore.Signal(dict)
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)

@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 
 import yaml
-from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtWidgets import QComboBox, QDialog, QLabel, QLineEdit, QWidget
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtWidgets import QComboBox, QDialog, QLabel, QLineEdit, QWidget
 
 from ui.settings import Ui_Dialog
 from utils import get_config_local, save_config_local

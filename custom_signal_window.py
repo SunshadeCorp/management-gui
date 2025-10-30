@@ -1,9 +1,9 @@
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QMainWindow
+from PySide6 import QtCore
+from PySide6.QtWidgets import QMainWindow
 
 
 class CustomSignalWindow(QMainWindow):
-    signal = QtCore.pyqtSignal(dict)
+    signal = QtCore.Signal(dict)
 
     def __init__(self):
         super().__init__()

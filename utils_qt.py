@@ -1,4 +1,4 @@
-from PyQt6 import QtWidgets
+from PySide6 import QtWidgets
 
 
 def exchange_widget_positions(grid_layout: QtWidgets.QGridLayout, widget1: QtWidgets.QWidget,

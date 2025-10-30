@@ -4,9 +4,8 @@ import sys
 import threading
 from pathlib import Path
 
-import qdarktheme
 from fabric import Connection
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from config_reader import ConfigReader
 from credentials import Credentials
@@ -24,7 +23,10 @@ CONFIG_FILE = Path('config.yaml')
 
 class MainWindow(Ui_MainWindow):
     def __init__(self):
-        self.app = QtWidgets.QApplication(sys.argv)
+        if not QtWidgets.QApplication.instance():
+            self.app = QtWidgets.QApplication(sys.argv)
+        else:
+            self.app = QtWidgets.QApplication.instance()
         self.main_window = CustomSignalWindow()
         self.setupUi(self.main_window)
 
@@ -121,6 +123,5 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QtWidgets.QApplication(sys.argv)
-    qdarktheme.setup_theme("dark")
     main_window = MainWindow()
     main_window.show()
