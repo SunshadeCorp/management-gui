@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=MQTT Live
+Exec=/home/.../management-gui/.venv/bin/python /home/.../management-gui/mqtt_live.py
+Path=/home/.../management-gui
+Terminal=false
+Categories=Development;Utility;
