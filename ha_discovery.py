@@ -19,6 +19,7 @@ class SensorDef:
     value_min: int | None = None
     value_max: int | None = None
     value_step: float | None = None
+    mode: str | None = None
 
 
 def generate_ha_discovery_payload(sensors: list[SensorDef], dev_id: str, dev_name: str, o_name: str, o_url: str,
@@ -55,5 +56,6 @@ def generate_ha_discovery_payload(sensors: list[SensorDef], dev_id: str, dev_nam
         if sensor.value_min: component['min'] = sensor.value_min  # min
         if sensor.value_max: component['max'] = sensor.value_max  # max
         if sensor.value_step: component['step'] = sensor.value_step  # step
+        if sensor.mode: component['mode'] = sensor.mode  # mode
         payload['cmps'][sensor.name] = component
     return json.dumps(payload)

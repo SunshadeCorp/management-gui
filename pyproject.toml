@@ -1,0 +1,11 @@
+[project]
+name = "management-gui"
+version = "0.0.4"
+requires-python = "==3.13.*"
+dependencies = [
+    "fabric==3.2.2",
+    "paho-mqtt>=2.1.0",
+    "paramiko==4.0.0",
+    "pyside6>=6.10.1",
+    "pyyaml>=6.0.3",
+]

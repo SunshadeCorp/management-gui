@@ -4,9 +4,22 @@ Manage EasyBMS installation and show live data.
 
 ## setup
 
+install uv if missing: https://github.com/astral-sh/uv?tab=readme-ov-file#installation
+
+### Windows
+
 `choco install git mingw`
 
-`pip install --prefer-binary -r requirements.txt`
+`uv sync`
+
+```
+cd ui
+./make.bat
+```
+
+### Linux
+
+`uv sync`
 
 ```
 cd ui
