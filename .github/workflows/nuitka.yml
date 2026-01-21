@@ -5,7 +5,7 @@ on:
     tags: [ '*.*.*' ]
 
 env:
-  REPO_NAME: ${{ github.event.repository.name }}
+  PROJECT_NAME: mqtt-live
   SCRIPT_NAME: mqtt_live
   VERSION: ${{ github.ref_name }}
 
@@ -31,11 +31,11 @@ jobs:
       - name: Set NUITKA_OUTPUT (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        run: echo "NUITKA_OUTPUT=${{ env.REPO_NAME }}.exe" >> "$GITHUB_ENV"
+        run: echo "NUITKA_OUTPUT=${{ env.PROJECT_NAME }}.exe" >> "$GITHUB_ENV"
       - name: Set NUITKA_OUTPUT (Linux)
         if: runner.os == 'Linux'
         shell: bash
-        run: echo "NUITKA_OUTPUT=${{ env.REPO_NAME }}" >> "$GITHUB_ENV"
+        run: echo "NUITKA_OUTPUT=${{ env.PROJECT_NAME }}" >> "$GITHUB_ENV"
       - uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -72,25 +72,25 @@ jobs:
         if: matrix.nuitka_mode == 'standalone'
         uses: thedoctor0/zip-release@0.7.6
         with:
-          filename: ${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.zip
+          filename: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.zip
           directory: build/${{ env.SCRIPT_NAME }}.dist/
           type: 7z
       - name: Rename onefile
         if: matrix.nuitka_mode == 'onefile'
         shell: bash
-        run: mv build/${{ env.NUITKA_OUTPUT }} ${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.exe
+        run: mv build/${{ env.NUITKA_OUTPUT }} ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.exe
       - name: Upload workflow artifact (standalone)
         if: matrix.nuitka_mode == 'standalone'
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.nuitka_mode }}
-          path: build/${{ env.SCRIPT_NAME }}.dist/${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.zip
+          name: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.nuitka_mode }}
+          path: build/${{ env.SCRIPT_NAME }}.dist/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.zip
       - name: Upload workflow artifact (onefile)
         if: matrix.nuitka_mode == 'onefile'
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.nuitka_mode }}
-          path: ${{ env.REPO_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.exe
+          name: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.nuitka_mode }}
+          path: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}.exe
 
   release:
     runs-on: ubuntu-latest
